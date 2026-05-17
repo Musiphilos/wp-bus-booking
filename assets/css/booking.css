@@ -1,0 +1,536 @@
+/*
+ * LB Swing — Bus Booking page styles.
+ * Editorial / refined-classical, matched to the live theme.
+ * Light theme only — no dark-mode overrides (theme is always light).
+ *
+ * Palette pulled from --e-global-color-* (verified 2026-05-16):
+ *   primary teal     #036773      links, CTAs, accents
+ *   text teal        #014B51      body, borders
+ *   mid teal         #009BAC      hover
+ *   light teal       #B7E0ED      subtle tints
+ *   plum             #624A8D      secondary symbolic accent
+ *   yellow accent    #EBB02B      USED ONCE — the card top stripe
+ *   cream surface    #F6F3EB
+ *   white            #FFFFFF
+ */
+
+.nvf-bb {
+	--nvf-primary:     #036773;
+	--nvf-primary-2:   #009BAC;
+	--nvf-text:        #014B51;
+	--nvf-muted:       #5b7479;
+	--nvf-plum:        #624A8D;
+	--nvf-light:       #B7E0ED;
+	--nvf-cream:       #F6F3EB;
+	--nvf-yellow:      #EBB02B;
+	--nvf-card-bg:     #FFFFFF;
+	--nvf-border:      #014B51;
+	--nvf-border-soft: #d8e5e7;
+	--nvf-success:     #166534;
+	--nvf-success-bg:  #ecfdf5;
+	--nvf-error:       #881812;
+	--nvf-error-bg:    #fdecec;
+
+	max-width: 720px;
+	margin: 2.5rem auto 3.5rem;
+	padding: 0 1rem;
+
+	/* Match the theme's body voice: Brandon Grotesque, Verdana fallback. */
+	font-family: 'Brandon Grotesque', 'Brandon', Verdana, Geneva, sans-serif;
+	font-size: 1.125rem;        /* ~18px base — child elements scale from this via em */
+	font-weight: 400;
+	color: var(--nvf-text);
+	line-height: 1.55;
+}
+
+.nvf-bb * { box-sizing: border-box; }
+
+/* ---------- Page header ---------- */
+
+.nvf-bb__header {
+	text-align: center;
+	margin: 0 auto 2.25rem;
+	max-width: 640px;
+}
+
+.nvf-bb__eyebrow {
+	display: inline-block;
+	font-size: 0.78em;          /* ~14px against the 18px base */
+	font-weight: 700;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--nvf-primary);
+	margin: 0 0 0.5rem;
+}
+
+.nvf-bb__title {
+	/* H1 stays serif via theme cascade for h1 elements. */
+	font-size: clamp(2.4rem, 5vw, 3.1rem);
+	line-height: 1.08;
+	letter-spacing: -0.005em;
+	color: var(--nvf-primary);
+	margin: 0 0 0.5rem;
+	font-weight: 700;
+}
+
+.nvf-bb__lede {
+	max-width: 36ch;            /* keep line measure honest at the bigger size */
+	margin: 1rem auto 0;
+	font-size: 1.39em;          /* ~25px Brandon, matches the theme body */
+	line-height: 1.5;
+	color: var(--nvf-text);
+}
+
+.nvf-bb__tripstrip {
+	display: inline-flex;
+	align-items: center;
+	gap: 12px;
+	margin: 1.25rem 0 0;
+	padding: 8px 16px;
+	background: #ffffff;
+	border: 1px solid var(--nvf-text);
+	border-radius: 2px;
+	font-size: 0.74rem;
+	font-weight: 700;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--nvf-primary);
+	white-space: nowrap;
+}
+.nvf-bb__tripstrip .nvf-bb__sep   { color: #c9d6d8; }
+.nvf-bb__tripstrip .nvf-bb__arrow { color: var(--nvf-plum); font-size: 1rem; transform: translateY(-1px); }
+
+@media (max-width: 540px) {
+	.nvf-bb__tripstrip {
+		white-space: normal;
+		text-align: center;
+		gap: 8px;
+		font-size: 0.7rem;
+		padding: 8px 12px;
+	}
+}
+
+/* ---------- Card ---------- */
+
+.nvf-bb__card {
+	position: relative;
+	background: var(--nvf-card-bg);
+	border: 1px solid var(--nvf-border);
+	border-radius: 2px;
+	padding: 2.5rem 2.6rem 2rem;
+	box-shadow: none;
+	animation: nvfRise 320ms cubic-bezier(.2,.7,.2,1) 120ms both;
+}
+.nvf-bb__card::before {
+	content: "";
+	position: absolute;
+	top: -1px;
+	left: -1px;
+	right: -1px;
+	height: 4px;
+	background: var(--nvf-yellow);
+}
+
+@keyframes nvfRise {
+	from { opacity: 0; transform: translateY(8px); }
+	to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) { .nvf-bb__card { animation: none; } }
+
+.nvf-bb__card h2 {
+	font-size: 0.83em;          /* ~15px */
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	font-weight: 700;
+	color: var(--nvf-primary);
+	margin: 0 0 1.1rem;
+	line-height: 1.2;
+}
+
+.nvf-bb__muted {
+	margin: 0.25rem 0 1.6rem;
+	font-size: 1em;             /* 18px */
+	line-height: 1.55;
+	color: var(--nvf-text);
+}
+
+/* ---------- Signed-in badge ---------- */
+
+.nvf-bb__badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	background: #efebf4;
+	color: var(--nvf-plum);
+	border: 1px solid #d3c8e4;
+	border-radius: 999px;
+	padding: 4px 12px 4px 10px;
+	font-size: 0.7rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	margin-bottom: 1.25rem;
+	text-transform: uppercase;
+}
+.nvf-bb__dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--nvf-plum);
+}
+
+/* ---------- Signed-in identity block ---------- */
+
+.nvf-bb__greeting {
+	font-size: clamp(1.4rem, 3vw, 1.7rem);
+	font-weight: 700;
+	line-height: 1.15;
+	color: var(--nvf-primary);
+	margin: 0;
+	display: inline-block;
+	padding-bottom: 4px;
+	border-bottom: 2px solid var(--nvf-yellow);
+}
+.nvf-bb__caption {
+	margin: 0.75rem 0 1.5rem;
+	font-size: 0.92rem;
+	color: var(--nvf-muted);
+	display: flex;
+	gap: 8px 16px;
+	flex-wrap: wrap;
+	align-items: center;
+}
+.nvf-bb__caption .nvf-bb__sep { color: #c9d6d8; }
+
+/* ---------- Form controls ---------- */
+
+.nvf-bb__label {
+	display: block;
+	font-weight: 700;
+	font-size: 0.83em;
+	letter-spacing: 0.04em;
+	margin: 0 0 8px;
+	color: var(--nvf-text);
+}
+
+.nvf-bb__input {
+	/* WIN over theme input reset; defeat any UA dark-tint. */
+	background: #ffffff !important;
+	color-scheme: light;
+	width: 100%;
+	padding: 14px 16px;
+	border-radius: 2px;
+	border: 1px solid #c9d6d8;
+	color: var(--nvf-text);
+	font: inherit;
+	font-size: 1em;             /* 18px — matches body */
+	transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.nvf-bb__input::placeholder { color: #a8b3b5; }
+.nvf-bb__input:focus {
+	outline: none;
+	border-color: var(--nvf-primary);
+	/* Inset border = effective 2px without layout shift. */
+	box-shadow: inset 0 0 0 1px var(--nvf-primary);
+}
+.nvf-bb__input:disabled { opacity: 0.65; }
+
+/* ---------- Buttons ---------- */
+
+.nvf-bb__actions {
+	display: flex;
+	gap: 12px;
+	margin-top: 1.4rem;
+	align-items: center;
+	flex-wrap: wrap;
+}
+
+.nvf-bb__btn {
+	appearance: none;
+	background: var(--nvf-primary);
+	color: #ffffff;
+	border: 1px solid var(--nvf-primary);
+	padding: 14px 28px;
+	border-radius: 2px;
+	font: inherit;
+	font-weight: 700;
+	font-size: 0.83em;          /* ~15px uppercase reads bolder than body */
+	letter-spacing: 0.12em;
+	cursor: pointer;
+	text-transform: uppercase;
+	transition: background 140ms ease, border-color 140ms ease, transform 60ms ease, box-shadow 140ms ease;
+}
+.nvf-bb__btn:hover:not(:disabled) {
+	background: var(--nvf-primary-2);
+	border-color: var(--nvf-primary-2);
+	transform: translateY(-1px);
+	box-shadow: 0 6px 14px rgba(3, 103, 115, 0.18);
+}
+.nvf-bb__btn:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+.nvf-bb__btn:disabled {
+	opacity: 0.55;          /* still recognisably the brand button */
+	cursor: not-allowed;
+	box-shadow: none;
+}
+
+.nvf-bb__btn--ghost {
+	background: transparent;
+	color: var(--nvf-primary);
+	border-color: var(--nvf-primary);
+}
+.nvf-bb__btn--ghost:hover:not(:disabled) {
+	background: var(--nvf-primary);
+	color: #ffffff;
+}
+
+.nvf-bb__btn--small {
+	padding: 8px 14px;
+	font-size: 0.74em;
+	letter-spacing: 0.1em;
+}
+
+/* ---------- Feedback ---------- */
+
+.nvf-bb__error {
+	color: var(--nvf-error);
+	background: var(--nvf-error-bg);
+	border: 1px solid #f3c0bd;
+	border-radius: 2px;
+	padding: 10px 12px;
+	font-size: 0.92rem;
+	margin: 14px 0 0;
+}
+.nvf-bb__notice {
+	color: var(--nvf-success);
+	background: var(--nvf-success-bg);
+	border: 1px solid #b6dec3;
+	border-radius: 2px;
+	padding: 10px 12px;
+	font-size: 0.92rem;
+	margin: 14px 0 0;
+}
+
+/* ---------- Card footnote ---------- */
+
+.nvf-bb__fine {
+	margin: 1.5rem 0 0;
+	text-align: left;
+	font-size: 0.82rem;
+	line-height: 1.55;
+	color: var(--nvf-muted);
+}
+
+.nvf-bb__privacy {
+	margin: 1.25rem 0 0;
+	text-align: center;
+	font-size: 0.78rem;
+	color: var(--nvf-muted);
+}
+.nvf-bb__privacy a { color: var(--nvf-primary); }
+
+/* ---------- Trip selector (Step 2) ---------- */
+
+.nvf-bb__trips {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1.4rem;
+	margin: 0.5rem 0 1.25rem;
+}
+@media (max-width: 540px) { .nvf-bb__trips { grid-template-columns: 1fr; } }
+
+.nvf-bb__group {
+	border: 1px solid var(--nvf-border-soft);
+	border-radius: 2px;
+	padding: 1rem 1.1rem 1.1rem;
+	margin: 0;
+	background: #fff;
+}
+.nvf-bb__group legend {
+	padding: 0 6px;
+	font-size: 0.74em;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	font-weight: 700;
+	color: var(--nvf-primary);
+}
+
+.nvf-bb__trip {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+	padding: 10px 10px;
+	border: 1px solid var(--nvf-border-soft);
+	border-radius: 2px;
+	cursor: pointer;
+	transition: border-color 120ms ease, background 120ms ease;
+	margin-top: 8px;
+}
+.nvf-bb__trip:hover { border-color: var(--nvf-primary); }
+.nvf-bb__trip.is-selected {
+	border-color: var(--nvf-primary);
+	background: rgba(3, 103, 115, 0.06);
+}
+.nvf-bb__trip.is-full .nvf-bb__trip-avail { color: var(--nvf-error); }
+.nvf-bb__trip input[type=radio] {
+	margin-top: 4px;
+	accent-color: var(--nvf-primary);
+}
+.nvf-bb__trip-body { flex: 1; }
+.nvf-bb__trip-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	align-items: baseline;
+}
+.nvf-bb__trip-code {
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	color: var(--nvf-text);
+}
+.nvf-bb__trip-time {
+	font-size: 0.85em;
+	color: var(--nvf-muted);
+}
+.nvf-bb__trip-avail {
+	font-size: 0.8em;
+	color: var(--nvf-muted);
+	margin-top: 2px;
+}
+
+.nvf-bb__pickup {
+	margin-top: 0.85rem;
+	padding-top: 0.85rem;
+	border-top: 1px dashed var(--nvf-border-soft);
+}
+.nvf-bb__pickup .nvf-bb__label { margin-bottom: 8px; }
+.nvf-bb__radio {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	padding: 6px 0;
+	cursor: pointer;
+	font-size: 0.95em;
+}
+.nvf-bb__radio input[type=radio] {
+	margin-top: 4px;
+	accent-color: var(--nvf-primary);
+}
+
+/* ---------- GDPR + summary ---------- */
+
+.nvf-bb__gdpr {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+	padding: 12px 14px;
+	background: var(--nvf-cream);
+	border: 1px solid var(--nvf-border-soft);
+	border-radius: 2px;
+	font-size: 0.92em;
+	line-height: 1.5;
+	cursor: pointer;
+	margin: 0.5rem 0 0;
+}
+.nvf-bb__gdpr input[type=checkbox] {
+	margin-top: 3px;
+	accent-color: var(--nvf-primary);
+	width: 18px; height: 18px;
+}
+
+.nvf-bb__summary {
+	margin: 1rem 0 1.25rem;
+	padding: 12px 14px;
+	border: 1px solid var(--nvf-border-soft);
+	border-radius: 2px;
+}
+.nvf-bb__summary-row {
+	display: flex;
+	justify-content: space-between;
+	padding: 4px 0;
+	font-size: 0.95em;
+}
+.nvf-bb__summary-row + .nvf-bb__summary-row { border-top: 1px dashed var(--nvf-border-soft); }
+.nvf-bb__summary-row > span:first-child { color: var(--nvf-muted); font-weight: 700; letter-spacing: 0.04em; font-size: 0.78em; text-transform: uppercase; align-self: center; }
+
+/* ---------- Booking summary "leg" ---------- */
+
+.nvf-bb__leg {
+	margin: 1rem 0 0;
+	padding: 1rem 1.1rem;
+	border: 1px solid var(--nvf-border-soft);
+	border-radius: 2px;
+	background: #fff;
+}
+.nvf-bb__leg + .nvf-bb__leg { margin-top: 0.85rem; }
+.nvf-bb__leg-head {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 6px;
+}
+.nvf-bb__leg-dir {
+	font-weight: 700;
+	font-size: 0.78em;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--nvf-primary);
+}
+.nvf-bb__leg-status {
+	font-weight: 700;
+	font-size: 0.74em;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	padding: 3px 8px;
+	border-radius: 2px;
+}
+.nvf-bb__leg-status.is-confirmed { background: var(--nvf-success-bg); color: var(--nvf-success); border: 1px solid #b6dec3; }
+.nvf-bb__leg-status.is-waitlist  { background: #fef7e1; color: #92580a; border: 1px solid #f4dba0; }
+.nvf-bb__leg-status.is-cancelled { background: var(--nvf-error-bg); color: var(--nvf-error); border: 1px solid #f3c0bd; }
+.nvf-bb__leg-code {
+	font-weight: 700;
+	color: var(--nvf-text);
+}
+.nvf-bb__leg-pickup {
+	margin-top: 4px;
+	font-size: 0.92em;
+	color: var(--nvf-muted);
+}
+.nvf-bb__leg .nvf-bb__btn--small { margin-top: 0.75rem; }
+
+/* ---------- Card-bleed "what's included" footer ---------- */
+
+.nvf-bb__includes {
+	list-style: none;
+	margin: 1.75rem -2.6rem -2rem;       /* bleed to card edges */
+	padding: 1.1rem 2.6rem;
+	border-top: 1px solid var(--nvf-border-soft);
+	background: var(--nvf-cream);
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 6px 28px;
+	font-size: 0.78rem;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--nvf-text);
+}
+.nvf-bb__includes li {
+	position: relative;
+	padding-left: 20px;
+}
+.nvf-bb__includes li::before {
+	content: "✓";
+	position: absolute;
+	left: 0;
+	top: 0;
+	color: var(--nvf-primary);
+	font-weight: 700;
+}
+
+@media (max-width: 540px) {
+	.nvf-bb__card { padding: 1.75rem 1.4rem 1.5rem; }
+	.nvf-bb__includes {
+		grid-template-columns: 1fr;
+		margin: 1.5rem -1.4rem -1.5rem;
+		padding: 0.9rem 1.4rem;
+	}
+}

@@ -1,0 +1,28 @@
+# ── Secrets / local config ─────────────────────────────────────────
+.env
+.env.local
+.mcp.json
+.claude/
+Makefile
+
+# ── Build artifacts ────────────────────────────────────────────────
+vendor/
+dist/
+node_modules/
+
+# ── Internal notes (not for public consumption) ────────────────────
+tasks/
+
+# ── Dev-only tooling (MCP integration not shipped to end users) ────
+src/Mcp/
+
+# ── OS / IDE clutter ───────────────────────────────────────────────
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# ── Logs / runtime ─────────────────────────────────────────────────
+*.log
+debug.log
