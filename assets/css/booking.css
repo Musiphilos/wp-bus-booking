@@ -30,6 +30,7 @@
 	--nvf-success-bg:  #ecfdf5;
 	--nvf-error:       #881812;
 	--nvf-error-bg:    #fdecec;
+	--nvf-card-pad:    2.6rem;
 
 	max-width: 720px;
 	margin: 2.5rem auto 3.5rem;
@@ -44,6 +45,16 @@
 }
 
 .nvf-bb * { box-sizing: border-box; }
+
+.nvf-bb__sr-only {
+	position: absolute !important;
+	width: 1px; height: 1px;
+	padding: 0; margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
 
 /* ---------- Page header ---------- */
 
@@ -116,8 +127,10 @@
 	background: var(--nvf-card-bg);
 	border: 1px solid var(--nvf-border);
 	border-radius: 2px;
-	padding: 2.5rem 2.6rem 2rem;
+	padding: 2.5rem var(--nvf-card-pad) 2rem;
 	box-shadow: none;
+}
+.nvf-bb[data-first-paint="1"] .nvf-bb__card {
 	animation: nvfRise 320ms cubic-bezier(.2,.7,.2,1) 120ms both;
 }
 .nvf-bb__card::before {
@@ -484,7 +497,7 @@
 	border-radius: 2px;
 }
 .nvf-bb__leg-status.is-confirmed { background: var(--nvf-success-bg); color: var(--nvf-success); border: 1px solid #b6dec3; }
-.nvf-bb__leg-status.is-waitlist  { background: #fef7e1; color: #92580a; border: 1px solid #f4dba0; }
+.nvf-bb__leg-status.is-waitlist  { background: #fef7e1; color: #7a4708; border: 1px solid #f4dba0; }
 .nvf-bb__leg-status.is-cancelled { background: var(--nvf-error-bg); color: var(--nvf-error); border: 1px solid #f3c0bd; }
 .nvf-bb__leg-code {
 	font-weight: 700;
@@ -501,8 +514,8 @@
 
 .nvf-bb__includes {
 	list-style: none;
-	margin: 1.75rem -2.6rem -2rem;       /* bleed to card edges */
-	padding: 1.1rem 2.6rem;
+	margin: 1.75rem calc(-1 * var(--nvf-card-pad)) -2rem;       /* bleed to card edges */
+	padding: 1.1rem var(--nvf-card-pad);
 	border-top: 1px solid var(--nvf-border-soft);
 	background: var(--nvf-cream);
 	display: grid;
@@ -527,10 +540,114 @@
 }
 
 @media (max-width: 540px) {
-	.nvf-bb__card { padding: 1.75rem 1.4rem 1.5rem; }
+	.nvf-bb { --nvf-card-pad: 1.4rem; }
+	.nvf-bb__card { padding: 1.75rem var(--nvf-card-pad) 1.5rem; }
 	.nvf-bb__includes {
 		grid-template-columns: 1fr;
-		margin: 1.5rem -1.4rem -1.5rem;
-		padding: 0.9rem 1.4rem;
+		margin: 1.5rem calc(-1 * var(--nvf-card-pad)) -1.5rem;
+		padding: 0.9rem var(--nvf-card-pad);
 	}
+}
+
+/* ---------- Skeleton trip cards ---------- */
+
+.nvf-bb__skeleton {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1.4rem;
+	margin: 0.5rem 0 1.25rem;
+}
+@media (max-width: 540px) { .nvf-bb__skeleton { grid-template-columns: 1fr; } }
+.nvf-bb__skeleton-group {
+	border: 1px solid var(--nvf-border-soft);
+	border-radius: 2px;
+	padding: 1rem 1.1rem 1.1rem;
+	background: #fff;
+}
+.nvf-bb__skeleton-row {
+	height: 52px;
+	border-radius: 2px;
+	margin-top: 8px;
+	background: linear-gradient(90deg, #eef3f4 0%, #f7fafa 50%, #eef3f4 100%);
+	background-size: 200% 100%;
+	animation: nvfShimmer 1400ms ease-in-out infinite;
+}
+.nvf-bb__skeleton-row:first-child { margin-top: 0; }
+@keyframes nvfShimmer {
+	0%   { background-position: 200% 0; }
+	100% { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) { .nvf-bb__skeleton-row { animation: none; } }
+
+/* ---------- Resend pill (step 1 — link already sent) ---------- */
+
+.nvf-bb__resend {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	flex-wrap: wrap;
+	margin-top: 1.4rem;
+	font-size: 0.92rem;
+	color: var(--nvf-muted);
+}
+.nvf-bb__resend .nvf-bb__btn { flex: 0 0 auto; }
+.nvf-bb__cooldown {
+	font-variant-numeric: tabular-nums;
+	font-weight: 700;
+	color: var(--nvf-muted);
+}
+
+/* ---------- Full / disabled trip rows ---------- */
+
+.nvf-bb__trip.is-full {
+	background: #fafbfb;
+}
+.nvf-bb__trip.is-full .nvf-bb__trip-code { color: var(--nvf-muted); }
+
+/* ---------- Confirm dialog ---------- */
+
+.nvf-bb__dialog {
+	border: 1px solid var(--nvf-border);
+	border-radius: 2px;
+	padding: 0;
+	max-width: 420px;
+	width: calc(100% - 2rem);
+	background: #fff;
+	color: var(--nvf-text);
+	box-shadow: 0 24px 60px rgba(1, 75, 81, 0.22);
+}
+.nvf-bb__dialog::backdrop {
+	background: rgba(1, 75, 81, 0.42);
+	backdrop-filter: blur(2px);
+}
+.nvf-bb__dialog-body {
+	padding: 1.6rem 1.6rem 1.25rem;
+}
+.nvf-bb__dialog h3 {
+	margin: 0 0 0.5rem;
+	font-size: 0.85em;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--nvf-primary);
+	font-weight: 700;
+}
+.nvf-bb__dialog p {
+	margin: 0 0 1.1rem;
+	font-size: 0.95em;
+	line-height: 1.5;
+}
+.nvf-bb__dialog-actions {
+	display: flex;
+	gap: 10px;
+	justify-content: flex-end;
+	flex-wrap: wrap;
+}
+.nvf-bb .nvf-bb__btn--danger {
+	background: var(--nvf-error);
+	border-color: var(--nvf-error);
+}
+.nvf-bb .nvf-bb__btn--danger:hover:not(:disabled) {
+	background: #6d130e;
+	border-color: #6d130e;
+	box-shadow: 0 6px 14px rgba(136, 24, 18, 0.22);
 }

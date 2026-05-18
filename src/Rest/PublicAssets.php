@@ -17,7 +17,8 @@ use NVF\BusBooking\Support\StringRenderer;
  */
 final class PublicAssets {
 
-	public const SHORTCODE = 'nvf_booking_page';
+	public const SHORTCODE      = 'nvf_booking_page';
+	private const ALPINE_VERSION = '3.14.1';
 
 	public static function register(): void {
 		add_shortcode( self::SHORTCODE, [ self::class, 'render' ] );
@@ -28,8 +29,14 @@ final class PublicAssets {
 		wp_register_style( 'nvf-bb', NVF_BB_URL . 'assets/css/booking.css', [], NVF_BB_VERSION );
 		wp_register_style( 'nvf-bb-debug', NVF_BB_URL . 'assets/css/debug-panel.css', [], NVF_BB_VERSION );
 		wp_register_script( 'nvf-bb', NVF_BB_URL . 'assets/js/booking.js', [], NVF_BB_VERSION, [ 'in_footer' => true, 'strategy' => 'defer' ] );
-		// Alpine must execute AFTER booking.js so the component factory is registered before alpine:init fires.
-		wp_register_script( 'nvf-bb-alpine', 'https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js', [ 'nvf-bb' ], '3.14.1', [ 'in_footer' => true, 'strategy' => 'defer' ] );
+		// Alpine vendored locally — see assets/js/vendor/. Must load AFTER booking.js so the component factory is registered before alpine:init fires.
+		wp_register_script(
+			'nvf-bb-alpine',
+			NVF_BB_URL . 'assets/js/vendor/alpinejs-' . self::ALPINE_VERSION . '.min.js',
+			[ 'nvf-bb' ],
+			self::ALPINE_VERSION,
+			[ 'in_footer' => true, 'strategy' => 'defer' ]
+		);
 		wp_register_script( 'nvf-bb-debug', NVF_BB_URL . 'assets/js/debug-panel.js', [], NVF_BB_VERSION, [ 'in_footer' => true, 'strategy' => 'defer' ] );
 	}
 
@@ -54,13 +61,40 @@ final class PublicAssets {
 		$session  = SessionCookie::read();
 		$profile  = $session ? ElementorLookup::findByEmail( $session['email'] ) : null;
 
+		$requestUri = isset( $_SERVER['REQUEST_URI'] )
+			? esc_url_raw( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) )
+			: '/';
+
+		$pickups = [
+			'airport'        => __( 'Porto Airport (Vodafone store)', 'nvf-bus-booking' ),
+			'casa_da_musica' => __( 'Terminal Alsa/Autna — Casa da Música', 'nvf-bus-booking' ),
+		];
+
 		$config = [
-			'restBase'   => esc_url_raw( rest_url( 'nvf/v1' ) ),
-			'restNonce'  => wp_create_nonce( 'wp_rest' ),
-			'pageUrl'    => self::bookingPageUrl() ?: home_url( $_SERVER['REQUEST_URI'] ?? '/' ),
-			'signedIn'   => (bool) $session,
-			'profile'    => $profile,
-			'flash'      => self::readFlash(),
+			'restBase'     => esc_url_raw( rest_url( 'nvf/v1' ) ),
+			'restNonce'    => wp_create_nonce( 'wp_rest' ),
+			'pageUrl'      => self::bookingPageUrl() ?: home_url( $requestUri ),
+			'signedIn'     => (bool) $session,
+			'profile'      => $profile,
+			'flash'        => self::readFlash(),
+			'pickups'      => $pickups,
+			'statusLabels' => [
+				'confirmed' => __( 'Confirmed', 'nvf-bus-booking' ),
+				'waitlist'  => __( 'On the waiting list', 'nvf-bus-booking' ),
+				'cancelled' => __( 'Cancelled', 'nvf-bus-booking' ),
+				'none'      => __( 'Not booked', 'nvf-bus-booking' ),
+			],
+			'i18n'         => [
+				'rate_limited'   => __( 'Too many attempts. Please wait {minutes} minute(s) and try again.', 'nvf-bus-booking' ),
+				'verify_failed'  => __( 'Could not send the link. Please try again.', 'nvf-bus-booking' ),
+				'verify_sent'    => __( 'If that email is registered, we have sent you a sign-in link.', 'nvf-bus-booking' ),
+				'book_failed'    => __( 'Could not save the booking.', 'nvf-bus-booking' ),
+				'cancel_failed'  => __( 'Could not cancel. Please retry.', 'nvf-bus-booking' ),
+				'network_error'  => __( 'Network error. Please try again.', 'nvf-bus-booking' ),
+				'avail_cancelled'=> __( 'Cancelled', 'nvf-bus-booking' ),
+				'avail_left'     => __( '{n} of {total} seats left', 'nvf-bus-booking' ),
+				'avail_full'     => __( 'Full — join the waitlist', 'nvf-bus-booking' ),
+			],
 		];
 		wp_add_inline_script(
 			'nvf-bb',
@@ -90,17 +124,11 @@ final class PublicAssets {
 
 		ob_start();
 		?>
-		<section class="nvf-bb" data-nvf-version="<?php echo esc_attr( NVF_BB_VERSION ); ?>">
+		<section class="nvf-bb" data-nvf-version="<?php echo esc_attr( NVF_BB_VERSION ); ?>" data-first-paint="1">
 			<header class="nvf-bb__header">
 				<p class="nvf-bb__eyebrow"><?php echo esc_html( StringRenderer::render( 'booking.eyebrow' ) ); ?></p>
 				<h1 class="nvf-bb__title"><?php echo esc_html( StringRenderer::render( 'booking.h1' ) ); ?></h1>
-				<div class="nvf-bb__tripstrip" aria-label="<?php esc_attr_e( 'Trip overview', 'nvf-bus-booking' ); ?>">
-					<span><?php echo esc_html( StringRenderer::render( 'booking.trip_strip.dates' ) ); ?></span>
-					<span class="nvf-bb__sep" aria-hidden="true">·</span>
-					<span><?php echo esc_html( StringRenderer::render( 'booking.trip_strip.origin' ) ); ?></span>
-					<span class="nvf-bb__arrow" aria-hidden="true">⇄</span>
-					<span><?php echo esc_html( StringRenderer::render( 'booking.trip_strip.destination' ) ); ?></span>
-				</div>
+				<?php self::renderTripStrip(); ?>
 				<p class="nvf-bb__lede">
 					<?php echo esc_html( StringRenderer::render( 'booking.lede' ) ); ?>
 				</p>
@@ -131,8 +159,18 @@ final class PublicAssets {
 								</p>
 
 								<template x-if="!trips.loaded">
-									<p class="nvf-bb__muted"><?php esc_html_e( 'Loading trips…', 'nvf-bus-booking' ); ?></p>
+									<div class="nvf-bb__skeleton" aria-hidden="true">
+										<div class="nvf-bb__skeleton-group">
+											<div class="nvf-bb__skeleton-row"></div>
+											<div class="nvf-bb__skeleton-row"></div>
+										</div>
+										<div class="nvf-bb__skeleton-group">
+											<div class="nvf-bb__skeleton-row"></div>
+											<div class="nvf-bb__skeleton-row"></div>
+										</div>
+									</div>
 								</template>
+								<p class="nvf-bb__sr-only" x-show="!trips.loaded" role="status"><?php esc_html_e( 'Loading trips…', 'nvf-bus-booking' ); ?></p>
 
 								<template x-if="trips.loaded">
 									<div class="nvf-bb__trips">
@@ -140,17 +178,19 @@ final class PublicAssets {
 										<fieldset class="nvf-bb__group">
 											<legend><?php esc_html_e( 'Inbound · Sep 24', 'nvf-bus-booking' ); ?></legend>
 											<template x-for="t in trips.inbound" :key="t.id">
-												<label class="nvf-bb__trip" :class="{ 'is-selected': selection.inbound_trip_id === t.id, 'is-full': t.available === 0 }">
+												<label class="nvf-bb__trip"
+												       :class="{ 'is-selected': selection.inbound_trip_id === t.id, 'is-full': t.available === 0 }">
 													<input type="radio" name="inbound"
 													       :value="t.id"
 													       :checked="selection.inbound_trip_id === t.id"
+													       :aria-describedby="'nvf-avail-' + t.id"
 													       @click="toggleTrip('inbound', t.id)" />
 													<div class="nvf-bb__trip-body">
 														<div class="nvf-bb__trip-row">
 															<span class="nvf-bb__trip-code" x-text="t.code"></span>
 															<span class="nvf-bb__trip-time" x-text="t.departure"></span>
 														</div>
-														<div class="nvf-bb__trip-avail" x-text="fmtAvailability(t)"></div>
+														<div class="nvf-bb__trip-avail" :id="'nvf-avail-' + t.id" x-text="fmtAvailability(t)"></div>
 													</div>
 												</label>
 											</template>
@@ -160,11 +200,11 @@ final class PublicAssets {
 													<p class="nvf-bb__label"><?php esc_html_e( 'Where are we picking you up?', 'nvf-bus-booking' ); ?></p>
 													<label class="nvf-bb__radio">
 														<input type="radio" name="pickup" value="airport" x-model="selection.inbound_pickup" />
-														<span><?php esc_html_e( 'Porto Airport (Vodafone store)', 'nvf-bus-booking' ); ?></span>
+														<span x-text="pickupLabel('airport')"></span>
 													</label>
 													<label class="nvf-bb__radio">
 														<input type="radio" name="pickup" value="casa_da_musica" x-model="selection.inbound_pickup" />
-														<span><?php esc_html_e( 'Terminal Alsa/Autna — Casa da Música', 'nvf-bus-booking' ); ?></span>
+														<span x-text="pickupLabel('casa_da_musica')"></span>
 													</label>
 												</div>
 											</template>
@@ -174,17 +214,19 @@ final class PublicAssets {
 										<fieldset class="nvf-bb__group">
 											<legend><?php esc_html_e( 'Outbound · Sep 28', 'nvf-bus-booking' ); ?></legend>
 											<template x-for="t in trips.outbound" :key="t.id">
-												<label class="nvf-bb__trip" :class="{ 'is-selected': selection.outbound_trip_id === t.id, 'is-full': t.available === 0 }">
+												<label class="nvf-bb__trip"
+												       :class="{ 'is-selected': selection.outbound_trip_id === t.id, 'is-full': t.available === 0 }">
 													<input type="radio" name="outbound"
 													       :value="t.id"
 													       :checked="selection.outbound_trip_id === t.id"
+													       :aria-describedby="'nvf-avail-' + t.id"
 													       @click="toggleTrip('outbound', t.id)" />
 													<div class="nvf-bb__trip-body">
 														<div class="nvf-bb__trip-row">
 															<span class="nvf-bb__trip-code" x-text="t.code"></span>
 															<span class="nvf-bb__trip-time" x-text="t.departure"></span>
 														</div>
-														<div class="nvf-bb__trip-avail" x-text="fmtAvailability(t)"></div>
+														<div class="nvf-bb__trip-avail" :id="'nvf-avail-' + t.id" x-text="fmtAvailability(t)"></div>
 													</div>
 												</label>
 											</template>
@@ -197,7 +239,9 @@ final class PublicAssets {
 									<span><?php echo esc_html( StringRenderer::render( 'booking.gdpr_label' ) ); ?></span>
 								</label>
 
-								<template x-if="error"><p class="nvf-bb__error" x-text="error"></p></template>
+								<template x-if="error">
+									<p class="nvf-bb__error" role="alert" aria-live="assertive" x-text="error"></p>
+								</template>
 
 								<div class="nvf-bb__actions">
 									<button type="button" class="nvf-bb__btn" :disabled="!canSubmit()" @click="submitBooking">
@@ -233,7 +277,7 @@ final class PublicAssets {
 									</template>
 								</div>
 								<div class="nvf-bb__actions">
-									<button type="button" class="nvf-bb__btn" @click="step = 'done'"><?php esc_html_e( 'See booking', 'nvf-bus-booking' ); ?></button>
+									<button type="button" class="nvf-bb__btn" @click="step = 'done'; focusStepHeading()"><?php esc_html_e( 'See booking', 'nvf-bus-booking' ); ?></button>
 								</div>
 							</div>
 						</template>
@@ -264,7 +308,10 @@ final class PublicAssets {
 												</div>
 											</template>
 										</div>
-										<button type="button" class="nvf-bb__btn nvf-bb__btn--ghost nvf-bb__btn--small" :disabled="busy" @click="cancelDirectionCall('inbound')">
+										<button type="button"
+										        class="nvf-bb__btn nvf-bb__btn--ghost nvf-bb__btn--small"
+										        :disabled="busy && cancelDirection === 'inbound'"
+										        @click="openCancelDialog('inbound')">
 											<?php esc_html_e( 'Cancel inbound', 'nvf-bus-booking' ); ?>
 										</button>
 									</div>
@@ -285,13 +332,18 @@ final class PublicAssets {
 												</div>
 											</template>
 										</div>
-										<button type="button" class="nvf-bb__btn nvf-bb__btn--ghost nvf-bb__btn--small" :disabled="busy" @click="cancelDirectionCall('outbound')">
+										<button type="button"
+										        class="nvf-bb__btn nvf-bb__btn--ghost nvf-bb__btn--small"
+										        :disabled="busy && cancelDirection === 'outbound'"
+										        @click="openCancelDialog('outbound')">
 											<?php esc_html_e( 'Cancel outbound', 'nvf-bus-booking' ); ?>
 										</button>
 									</div>
 								</template>
 
-								<template x-if="error"><p class="nvf-bb__error" x-text="error"></p></template>
+								<template x-if="error">
+									<p class="nvf-bb__error" role="alert" aria-live="assertive" x-text="error"></p>
+								</template>
 
 								<p class="nvf-bb__fine">
 									<?php echo self::linkifyContact( StringRenderer::render( 'booking.help_line', $textCtx ), $textCtx['contact_email'] ); ?>
@@ -320,22 +372,41 @@ final class PublicAssets {
 						<form @submit.prevent="submitEmail" novalidate>
 							<label class="nvf-bb__label" for="nvf-bb-email"><?php esc_html_e( 'Email address', 'nvf-bus-booking' ); ?></label>
 							<input id="nvf-bb-email" class="nvf-bb__input" type="email" autocomplete="email"
-							       required x-model.trim="email" :disabled="busy" placeholder="you@example.com" />
+							       required x-model.trim="email" :disabled="busy || linkSent" placeholder="you@example.com" />
 
 							<template x-if="error">
-								<p class="nvf-bb__error" x-text="error"></p>
+								<p class="nvf-bb__error" role="alert" aria-live="assertive" x-text="error"></p>
 							</template>
 							<template x-if="notice">
-								<p class="nvf-bb__notice" x-text="notice"></p>
+								<p class="nvf-bb__notice" role="status" aria-live="polite" x-text="notice"></p>
 							</template>
 
-							<div class="nvf-bb__actions">
+							<!-- Pre-send CTA: only shown until the magic-link has been requested. -->
+							<div class="nvf-bb__actions" x-show="!linkSent">
 								<button type="submit" class="nvf-bb__btn" :disabled="busy || !email">
 									<span x-show="!busy"><?php esc_html_e( 'Send me the sign-in link', 'nvf-bus-booking' ); ?></span>
 									<span x-show="busy"><?php esc_html_e( 'Sending…', 'nvf-bus-booking' ); ?></span>
 								</button>
 							</div>
 						</form>
+
+						<!-- Post-send CTA: contextual resend + "use a different email". -->
+						<div class="nvf-bb__resend" x-show="linkSent">
+							<button type="button"
+							        class="nvf-bb__btn nvf-bb__btn--ghost"
+							        :disabled="busy || resendIn > 0"
+							        @click="submitEmail">
+								<span x-show="resendIn === 0 && !busy"><?php esc_html_e( 'Resend the link', 'nvf-bus-booking' ); ?></span>
+								<span x-show="busy"><?php esc_html_e( 'Resending…', 'nvf-bus-booking' ); ?></span>
+								<span x-show="resendIn > 0 && !busy">
+									<?php esc_html_e( 'Resend in', 'nvf-bus-booking' ); ?>
+									<span class="nvf-bb__cooldown" x-text="resendIn + 's'"></span>
+								</span>
+							</button>
+							<button type="button" class="nvf-bb__btn nvf-bb__btn--ghost nvf-bb__btn--small" @click="useDifferentEmail">
+								<?php esc_html_e( 'Use a different email', 'nvf-bus-booking' ); ?>
+							</button>
+						</div>
 
 						<p class="nvf-bb__fine">
 							<?php echo self::linkifyContact( StringRenderer::render( 'booking.step1.footnote', $textCtx ), $textCtx['contact_email'] ); ?>
@@ -344,6 +415,24 @@ final class PublicAssets {
 						<?php self::renderIncludesList(); ?>
 					</div>
 				</template>
+
+				<!-- Cancel-confirm dialog -->
+				<dialog id="nvf-bb-confirm" class="nvf-bb__dialog" @close="confirmOpen = false; confirmDirection = null">
+					<div class="nvf-bb__dialog-body">
+						<h3><?php esc_html_e( 'Cancel this leg?', 'nvf-bus-booking' ); ?></h3>
+						<p>
+							<?php esc_html_e( 'This releases your seat (or waitlist position) for the selected direction. You can re-book later if seats are still available.', 'nvf-bus-booking' ); ?>
+						</p>
+						<div class="nvf-bb__dialog-actions">
+							<button type="button" class="nvf-bb__btn nvf-bb__btn--ghost nvf-bb__btn--small" @click="closeCancelDialog">
+								<?php esc_html_e( 'Keep it', 'nvf-bus-booking' ); ?>
+							</button>
+							<button type="button" class="nvf-bb__btn nvf-bb__btn--danger nvf-bb__btn--small" data-confirm-cancel @click="confirmCancel">
+								<?php esc_html_e( 'Yes, cancel', 'nvf-bus-booking' ); ?>
+							</button>
+						</div>
+					</div>
+				</dialog>
 			</div>
 
 			<?php
@@ -367,6 +456,38 @@ final class PublicAssets {
 		</section>
 		<?php
 		return (string) ob_get_clean();
+	}
+
+	/**
+	 * Render the trip overview strip. Each of the three slots is admin-editable;
+	 * if all three resolve to empty, the strip is omitted entirely.
+	 */
+	private static function renderTripStrip(): void {
+		$dates = StringRenderer::render( 'booking.trip_strip.dates' );
+		$from  = StringRenderer::render( 'booking.trip_strip.origin' );
+		$to    = StringRenderer::render( 'booking.trip_strip.destination' );
+		if ( $dates === '' && $from === '' && $to === '' ) {
+			return;
+		}
+		?>
+		<div class="nvf-bb__tripstrip" aria-label="<?php esc_attr_e( 'Trip overview', 'nvf-bus-booking' ); ?>">
+			<?php if ( $dates !== '' ) : ?>
+				<span><?php echo esc_html( $dates ); ?></span>
+			<?php endif; ?>
+			<?php if ( $dates !== '' && ( $from !== '' || $to !== '' ) ) : ?>
+				<span class="nvf-bb__sep" aria-hidden="true">·</span>
+			<?php endif; ?>
+			<?php if ( $from !== '' ) : ?>
+				<span><?php echo esc_html( $from ); ?></span>
+			<?php endif; ?>
+			<?php if ( $from !== '' && $to !== '' ) : ?>
+				<span class="nvf-bb__arrow" aria-hidden="true">⇄</span>
+			<?php endif; ?>
+			<?php if ( $to !== '' ) : ?>
+				<span><?php echo esc_html( $to ); ?></span>
+			<?php endif; ?>
+		</div>
+		<?php
 	}
 
 	/**
