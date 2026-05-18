@@ -12,7 +12,7 @@ final class DebugContext {
 
 	public static function snapshot( int $logLines = 50 ): array {
 		return [
-			'generated_at'  => gmdate( 'c' ),
+			'generated_at'  => Time::nowIso(),
 			'plugin'        => [
 				'version' => defined( 'NVF_BB_VERSION' ) ? NVF_BB_VERSION : 'unknown',
 				'php'     => PHP_VERSION,

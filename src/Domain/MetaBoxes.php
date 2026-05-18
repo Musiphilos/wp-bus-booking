@@ -90,7 +90,7 @@ final class MetaBoxes {
 						'showButtonPanel' => false,
 					],
 					'required'   => true,
-					'desc'       => __( 'Stored as UTC; displayed in Europe/Lisbon.', 'nvf-bus-booking' ),
+					'desc'       => __( 'Stored as Europe/Lisbon wall-clock time (no timezone conversion).', 'nvf-bus-booking' ),
 				],
 				[
 					'id'    => 'stops',

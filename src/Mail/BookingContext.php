@@ -23,7 +23,7 @@ use NVF\BusBooking\Domain\PostTypes;
  *      - status_label           human label
  *      - trip_code              e.g. SHUTTLE-A
  *      - departure_human        'Thu 24 Sep · 14:30'
- *      - departure_iso          UTC ISO-8601
+ *      - departure_iso          ISO-8601 with Europe/Lisbon offset (or '' if unparseable)
  *      - pickup_label           string (inbound only, '' if none)
  *      - stops                  array<int,{label,time}>
  *  - cancellation_deadline string|null  ('Sun 27 Sep · 23:59' or null)
@@ -77,7 +77,7 @@ final class BookingContext {
 				'status_label'    => self::statusLabel( $status ),
 				'trip_code'       => (string) get_post_meta( $tripId, 'trip_code', true ),
 				'departure_human' => self::lisbonHuman( $rawDt ),
-				'departure_iso'   => $rawDt,
+				'departure_iso'   => \NVF\BusBooking\Support\Time::parseStored( $rawDt )?->format( 'c' ) ?? '',
 				'pickup_label'    => $direction === 'inbound' ? self::pickupLabel( (string) get_post_meta( $bookingId, 'inbound_pickup_location', true ) ) : '',
 				'stops'           => self::stops( (array) get_post_meta( $tripId, 'stops', true ) ),
 			];
@@ -111,16 +111,7 @@ final class BookingContext {
 	}
 
 	private static function lisbonHuman( string $dt ): string {
-		if ( $dt === '' ) {
-			return '';
-		}
-		try {
-			return ( new \DateTimeImmutable( $dt, new \DateTimeZone( 'UTC' ) ) )
-				->setTimezone( new \DateTimeZone( 'Europe/Lisbon' ) )
-				->format( 'D j M · H:i' );
-		} catch ( \Throwable $e ) {
-			return $dt;
-		}
+		return \NVF\BusBooking\Support\Time::formatHuman( $dt );
 	}
 
 	/**
@@ -155,7 +146,7 @@ final class BookingContext {
 		if ( ! $d ) {
 			return null;
 		}
-		return $d->setTimezone( new \DateTimeZone( 'Europe/Lisbon' ) )->format( 'D j M · H:i' );
+		return $d->format( 'D j M · H:i' );
 	}
 
 	private static function portalUrl(): string {

@@ -6,6 +6,7 @@ namespace NVF\BusBooking\Mail;
 
 use NVF\BusBooking\Support\Logger;
 use NVF\BusBooking\Support\StringRenderer;
+use NVF\BusBooking\Support\Time;
 
 /**
  * All transactional email for the plugin. Backed by wp_mail() so the host's
@@ -73,7 +74,7 @@ final class Mailer {
 		$ok = wp_mail(
 			$to,
 			'NVF Bus Booking — test email',
-			'<p>This is a delivery test from the NVF Bus Booking plugin. Timestamp: ' . esc_html( gmdate( 'c' ) ) . '</p>',
+			'<p>This is a delivery test from the NVF Bus Booking plugin. Timestamp: ' . esc_html( Time::nowIso() ) . '</p>',
 			self::headers()
 		);
 		$result = array_merge( [ 'ok' => (bool) $ok, 'to' => self::maskEmail( $to ) ], self::$lastDiagnostics );

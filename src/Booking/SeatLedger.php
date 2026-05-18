@@ -6,6 +6,7 @@ namespace NVF\BusBooking\Booking;
 
 use NVF\BusBooking\Domain\PostTypes;
 use NVF\BusBooking\Support\Logger;
+use NVF\BusBooking\Support\Time;
 
 /**
  * Atomic capacity guard.
@@ -80,7 +81,7 @@ final class SeatLedger {
 			$tripId,
 			$bookingId,
 			$direction,
-			current_time( 'mysql', true ),
+			Time::nowMysql(),
 			$tripId,
 			$capacity
 		);

@@ -3,7 +3,7 @@
  * Plugin Name:       Bus Booking
  * Plugin URI:        https://lbswing.com
  * Description:       Shuttle bus booking for LB Swing event participants. Uses Meta Box AIO for the data layer and MCP Adapter for AI/agent access.
- * Version:           0.4.2
+ * Version:           0.4.6
  * Requires at least: 6.4
  * Requires PHP:      8.2
  * Author:            LB Swing
@@ -15,7 +15,7 @@ declare( strict_types=1 );
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NVF_BB_VERSION', '0.4.2' );
+define( 'NVF_BB_VERSION', '0.4.6' );
 define( 'NVF_BB_FILE', __FILE__ );
 define( 'NVF_BB_DIR', plugin_dir_path( __FILE__ ) );
 define( 'NVF_BB_URL', plugin_dir_url( __FILE__ ) );

@@ -46,7 +46,7 @@ final class PurgeCommand {
 		$override = null;
 		if ( ! empty( $assoc_args['cutoff'] ) ) {
 			try {
-				$override = new \DateTimeImmutable( $assoc_args['cutoff'] . ' 23:59:59', new \DateTimeZone( 'Europe/Lisbon' ) );
+				$override = new \DateTimeImmutable( $assoc_args['cutoff'] . ' 23:59:59', \NVF\BusBooking\Support\Time::zone() );
 			} catch ( \Throwable $e ) {
 				WP_CLI::error( 'Bad --cutoff: ' . $e->getMessage() );
 			}
@@ -54,7 +54,7 @@ final class PurgeCommand {
 
 		$res = RetentionPurge::sweep( $dryRun, $override );
 
-		WP_CLI::log( sprintf( 'cutoff (UTC): %s', $res['cutoff_utc'] ?: '(none — set event_end_date or event_start_date)' ) );
+		WP_CLI::log( sprintf( 'cutoff (Lisbon): %s', $res['cutoff'] ?: '(none — set event_end_date or event_start_date)' ) );
 		WP_CLI::log( sprintf( 'considered:   %d', $res['considered'] ) );
 		WP_CLI::log( sprintf( 'eligible:     %d', $res['deleted'] ) );
 		WP_CLI::log( sprintf( 'skipped admin:%d', $res['skipped_admin'] ) );

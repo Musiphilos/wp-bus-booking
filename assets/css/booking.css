@@ -63,9 +63,8 @@
 	margin: 0 0 0.5rem;
 }
 
-.nvf-bb__title {
-	/* H1 stays serif via theme cascade for h1 elements. */
-	font-size: clamp(2.4rem, 5vw, 3.1rem);
+.nvf-bb .nvf-bb__title {
+	font-size: clamp(1.35rem, 5.5vw, 3.1rem);
 	line-height: 1.08;
 	letter-spacing: -0.005em;
 	color: var(--nvf-primary);
@@ -73,10 +72,10 @@
 	font-weight: 700;
 }
 
-.nvf-bb__lede {
-	max-width: 36ch;            /* keep line measure honest at the bigger size */
+.nvf-bb .nvf-bb__lede {
+	max-width: 36ch;
 	margin: 1rem auto 0;
-	font-size: 1.39em;          /* ~25px Brandon, matches the theme body */
+	font-size: clamp(1em, 3.5vw, 1.39em);
 	line-height: 1.5;
 	color: var(--nvf-text);
 }
@@ -244,10 +243,10 @@
 	flex-wrap: wrap;
 }
 
-.nvf-bb__btn {
+.nvf-bb .nvf-bb__btn {
 	appearance: none;
 	background: var(--nvf-primary);
-	color: #ffffff;
+	color: #ffffff !important;
 	border: 1px solid var(--nvf-primary);
 	padding: 14px 28px;
 	border-radius: 2px;
@@ -259,30 +258,31 @@
 	text-transform: uppercase;
 	transition: background 140ms ease, border-color 140ms ease, transform 60ms ease, box-shadow 140ms ease;
 }
-.nvf-bb__btn:hover:not(:disabled) {
+.nvf-bb .nvf-bb__btn:hover:not(:disabled) {
 	background: var(--nvf-primary-2);
 	border-color: var(--nvf-primary-2);
+	color: #ffffff !important;
 	transform: translateY(-1px);
 	box-shadow: 0 6px 14px rgba(3, 103, 115, 0.18);
 }
-.nvf-bb__btn:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
-.nvf-bb__btn:disabled {
+.nvf-bb .nvf-bb__btn:active:not(:disabled) { transform: translateY(0); box-shadow: none; }
+.nvf-bb .nvf-bb__btn:disabled {
 	opacity: 0.55;          /* still recognisably the brand button */
 	cursor: not-allowed;
 	box-shadow: none;
 }
 
-.nvf-bb__btn--ghost {
+.nvf-bb .nvf-bb__btn--ghost {
 	background: transparent;
-	color: var(--nvf-primary);
+	color: var(--nvf-primary) !important;
 	border-color: var(--nvf-primary);
 }
-.nvf-bb__btn--ghost:hover:not(:disabled) {
+.nvf-bb .nvf-bb__btn--ghost:hover:not(:disabled) {
 	background: var(--nvf-primary);
-	color: #ffffff;
+	color: #ffffff !important;
 }
 
-.nvf-bb__btn--small {
+.nvf-bb .nvf-bb__btn--small {
 	padding: 8px 14px;
 	font-size: 0.74em;
 	letter-spacing: 0.1em;
@@ -495,7 +495,7 @@
 	font-size: 0.92em;
 	color: var(--nvf-muted);
 }
-.nvf-bb__leg .nvf-bb__btn--small { margin-top: 0.75rem; }
+.nvf-bb .nvf-bb__leg .nvf-bb__btn--small { margin-top: 0.75rem; }
 
 /* ---------- Card-bleed "what's included" footer ---------- */
 

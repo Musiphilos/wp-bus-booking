@@ -48,7 +48,7 @@ final class Logger {
 		}
 
 		$entry = [
-			'ts'      => gmdate( 'c' ),
+			'ts'      => Time::nowIso(),
 			'level'   => $level,
 			'event'   => $event,
 			'user'    => get_current_user_id() ?: null,

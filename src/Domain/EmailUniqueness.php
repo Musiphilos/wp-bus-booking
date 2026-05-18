@@ -5,6 +5,7 @@ declare( strict_types=1 );
 namespace NVF\BusBooking\Domain;
 
 use NVF\BusBooking\Support\Logger;
+use NVF\BusBooking\Support\Time;
 
 /**
  * Lookup table that enforces "one booking per email" at the database level.
@@ -78,7 +79,7 @@ final class EmailUniqueness {
 			"INSERT INTO {$table} (email, booking_id, created_at) VALUES (%s, %d, %s)",
 			$email,
 			$bookingId,
-			current_time( 'mysql', true )
+			Time::nowMysql()
 		) );
 		$wpdb->suppress_errors( false );
 
@@ -130,7 +131,7 @@ final class EmailUniqueness {
 			   booking_id = IF(booking_id = %d, booking_id, booking_id)",
 			$newEmail,
 			$bookingId,
-			current_time( 'mysql', true ),
+			Time::nowMysql(),
 			$bookingId
 		) );
 		$wpdb->suppress_errors( false );

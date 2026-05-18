@@ -48,3 +48,44 @@
 ## Core Principles
 - **Simplicity First**: Make every change as simple as possible. Impact minimal code.
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
+
+---
+
+## WordPress MCP Integration
+
+This project has a live MCP connection to the WordPress instance hosting the plugin.
+MCP server: `lbswing-bookings`
+
+### Deploy Workflow
+
+After **every** code change to a plugin file, push it to WordPress via MCP:
+
+```
+mcp__lbswing-bookings__mcp-adapter-execute-ability
+  ability_name: "nvf-bus-booking/admin-deploy-file"
+  parameters:
+    path: "<path relative to plugin root, e.g. src/Admin/Dashboard.php>"
+    operation: "write"
+    content: "<full file contents>"
+```
+
+Rules:
+- Allowed extensions: `.php`, `.css`, `.js`, `.md`, `.json`, `.txt`, `.html`
+- Always deploy **after** local edits are saved
+- For **considerable changes** (new features, refactors, multi-file changes): run `superpowers:requesting-code-review` BEFORE deploying
+- For **minor changes** (typos, single-line fixes, copy tweaks): deploy immediately without review
+
+### Available MCP Abilities
+
+| Ability | Type | Use case |
+|---|---|---|
+| `nvf-bus-booking/get-bookings` | read | List bookings, optionally filtered by status |
+| `nvf-bus-booking/get-trips` | read | All trips with capacity, confirmed seats, availability |
+| `nvf-bus-booking/get-trip-manifest` | read | Full passenger list for a trip (confirmed + waitlist) |
+| `nvf-bus-booking/get-waiting-list` | read | Waitlist for a specific trip, FIFO order |
+| `nvf-bus-booking/get-booking-by-email` | read | Look up a booking by participant email |
+| `nvf-bus-booking/cancel-booking` | **write** | Cancel one or both directions (admin path, bypasses deadline) |
+| `nvf-bus-booking/admin-deploy-file` | **write** | Write / delete / read a file in the plugin directory |
+
+Use read abilities to verify live state before and after changes — e.g. read the current file before overwriting, or check trips/bookings to validate that data-layer changes are correct.
+Use write abilities carefully: `cancel-booking` is irreversible for the passenger; `admin-deploy-file` with `operation=delete` is destructive.

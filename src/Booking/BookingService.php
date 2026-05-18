@@ -12,6 +12,7 @@ use NVF\BusBooking\Integrations\GoogleSheetsWebhook;
 use NVF\BusBooking\Mail\BookingContext;
 use NVF\BusBooking\Mail\Mailer;
 use NVF\BusBooking\Support\Logger;
+use NVF\BusBooking\Support\Time;
 
 /**
  * Domain service for the booking lifecycle.
@@ -124,7 +125,7 @@ final class BookingService {
 			update_post_meta( $bookingId, 'outbound_status',  $outboundResult['status'] );
 		}
 
-		update_post_meta( $bookingId, 'gdpr_accepted_at', current_time( 'mysql', true ) );
+		update_post_meta( $bookingId, 'gdpr_accepted_at', \NVF\BusBooking\Support\Time::nowMysql() );
 		update_post_meta( $bookingId, 'source', 'public' );
 		self::appendHistory( $bookingId, $email, 'book', sprintf(
 			'inbound=%s outbound=%s',
@@ -239,7 +240,7 @@ final class BookingService {
 			'trip_id'    => $tripId,
 			'booking_id' => $bookingId,
 			'direction'  => $direction,
-			'created_at' => current_time( 'mysql', true ),
+			'created_at' => Time::nowMysql(),
 		], [ '%d', '%d', '%s', '%s' ] );
 		Logger::warning( 'seat.force_claim', [ 'trip_id' => $tripId, 'booking_id' => $bookingId ] );
 		return [ 'status' => 'confirmed', 'waitlist_position' => null ];
@@ -484,7 +485,7 @@ final class BookingService {
 		$existing   = get_post_meta( $bookingId, 'history', true );
 		$existing   = is_array( $existing ) ? $existing : [];
 		$existing[] = [
-			'timestamp' => current_time( 'mysql', true ),
+			'timestamp' => Time::nowMysql(),
 			'actor'     => $actor,
 			'action'    => $action,
 			'note'      => $note,

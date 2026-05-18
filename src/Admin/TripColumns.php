@@ -6,6 +6,7 @@ namespace NVF\BusBooking\Admin;
 
 use NVF\BusBooking\Domain\PostTypes;
 use NVF\BusBooking\Domain\TripCounts;
+use NVF\BusBooking\Support\Time;
 
 /**
  * Adds Trip-code / Direction / Date / Seats / Status columns to the trips
@@ -80,11 +81,7 @@ final class TripColumns {
 	}
 
 	private static function formatLisbon( string $dateTime ): string {
-		try {
-			$dt = new \DateTimeImmutable( $dateTime, new \DateTimeZone( 'Europe/Lisbon' ) );
-			return $dt->format( 'D j M · H:i' );
-		} catch ( \Throwable $e ) {
-			return $dateTime;
-		}
+		$formatted = Time::formatHuman( $dateTime );
+		return $formatted !== '' ? $formatted : $dateTime;
 	}
 }

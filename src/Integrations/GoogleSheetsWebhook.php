@@ -6,6 +6,7 @@ namespace NVF\BusBooking\Integrations;
 
 use NVF\BusBooking\Mail\BookingContext;
 use NVF\BusBooking\Support\Logger;
+use NVF\BusBooking\Support\Time;
 
 /**
  * Push booking events to a Google Apps Script web app, which appends a row
@@ -116,7 +117,7 @@ final class GoogleSheetsWebhook {
 		$outbound = $byDir['outbound'] ?? [];
 
 		return [
-			'received_at'        => gmdate( 'c' ),
+			'received_at'        => Time::nowIso(),
 			'event'              => $event,
 			'booking_ref'        => $ctx['booking_ref'] ?? '',
 			'participant_name'   => $ctx['participant_name']  ?? '',

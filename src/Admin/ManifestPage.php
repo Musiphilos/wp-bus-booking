@@ -479,12 +479,7 @@ final class ManifestPage {
 		if ( $dt === '' ) {
 			return '—';
 		}
-		try {
-			return ( new \DateTimeImmutable( $dt, new \DateTimeZone( 'UTC' ) ) )
-				->setTimezone( new \DateTimeZone( 'Europe/Lisbon' ) )
-				->format( 'D j M · H:i' );
-		} catch ( \Throwable $e ) {
-			return $dt;
-		}
+		$formatted = \NVF\BusBooking\Support\Time::formatHuman( $dt );
+		return $formatted !== '' ? $formatted : $dt;
 	}
 }

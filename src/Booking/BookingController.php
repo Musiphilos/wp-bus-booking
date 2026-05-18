@@ -203,12 +203,8 @@ final class BookingController {
 		if ( $dt === '' ) {
 			return '';
 		}
-		try {
-			$d = new \DateTimeImmutable( $dt, new \DateTimeZone( 'UTC' ) );
-			return $d->setTimezone( new \DateTimeZone( 'Europe/Lisbon' ) )->format( 'D j M · H:i' );
-		} catch ( \Throwable $e ) {
-			return $dt;
-		}
+		$formatted = \NVF\BusBooking\Support\Time::formatHuman( $dt );
+		return $formatted !== '' ? $formatted : $dt;
 	}
 
 	private static function mask( string $email ): string {

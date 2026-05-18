@@ -225,9 +225,14 @@ final class StringsRegistry {
 				__( 'Passenger', 'nvf-bus-booking' ),
 				[], 'text', 'pdf' ),
 
-			self::entry( 'pdf.on_the_day', 'On-the-day instructions',
-				'Footer block instructing the participant on day-of behaviour.',
-				__( 'On the day: please be at your pickup point 10 minutes early. Bring cash for the driver — the fare is collected on the bus. Show this booking reference to the team.', 'nvf-bus-booking' ),
+			self::entry( 'pdf.on_the_day_header', 'On-the-day instructions header',
+				'Header block shown below the email/pricing section, before the trip legs.',
+				__( 'On the day, please be at your pickup point 10 minutes early. Bring cash to pay. The fare is collected on the bus. Show this booking reference to the team.', 'nvf-bus-booking' ),
+				[], 'textarea', 'pdf' ),
+
+			self::entry( 'pdf.on_the_day_footer', 'On-the-day instructions footer',
+				'Footer block shown at the bottom of the ticket after the trip legs.',
+				__( 'Arrival times are estimated, and the festival cannot be held responsible for delays caused by circumstances beyond our control, including traffic, accidents, mechanical issues, or other unforeseen events', 'nvf-bus-booking' ),
 				[], 'textarea', 'pdf' ),
 
 			self::entry( 'pdf.cancellation_reminder', 'Cancellation reminder',

@@ -18,7 +18,7 @@ final class CancellationPolicy {
 			// No event date configured yet — treat as open (M3 dev mode).
 			return true;
 		}
-		$now = $now ?: new \DateTimeImmutable( 'now', new \DateTimeZone( 'UTC' ) );
+		$now = $now ?: \NVF\BusBooking\Support\Time::now();
 		return $now < $deadline;
 	}
 
@@ -28,11 +28,11 @@ final class CancellationPolicy {
 			return null;
 		}
 		try {
-			$start = new \DateTimeImmutable( $raw . ' 00:00:00', new \DateTimeZone( 'Europe/Lisbon' ) );
+			$start = new \DateTimeImmutable( $raw . ' 00:00:00', \NVF\BusBooking\Support\Time::zone() );
 		} catch ( \Throwable $e ) {
 			return null;
 		}
 		$buffer = max( 0, (int) \NVF\BusBooking\Support\Settings::get( 'nvf_cancellation_days_before', 1 ) );
-		return $start->modify( '-' . $buffer . ' days' )->setTimezone( new \DateTimeZone( 'UTC' ) );
+		return $start->modify( '-' . $buffer . ' days' );
 	}
 }

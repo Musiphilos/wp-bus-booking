@@ -107,7 +107,7 @@ final class SeedTripsCommand {
 
 			update_post_meta( $postId, 'trip_code',          $trip['code'] );
 			update_post_meta( $postId, 'direction',          $trip['direction'] );
-			update_post_meta( $postId, 'departure_datetime', self::toUtc( $trip['departure'] ) );
+			update_post_meta( $postId, 'departure_datetime', self::normalizeLisbon( $trip['departure'] ) );
 			update_post_meta( $postId, 'stops',              $trip['stops'] );
 			update_post_meta( $postId, 'capacity',           55 );
 			update_post_meta( $postId, 'status',             'open' );
@@ -140,11 +140,12 @@ final class SeedTripsCommand {
 	}
 
 	/**
-	 * Convert a Europe/Lisbon wall-clock string into the format Meta Box stores
-	 * for `datetime` fields. We persist UTC-equivalent so range queries are simple.
+	 * Normalize a Europe/Lisbon wall-clock string into the `Y-m-d H:i:s` shape
+	 * Meta Box uses for `datetime` fields. We store the value as-is (Lisbon
+	 * time) so what the admin sees matches what the database holds.
 	 */
-	private static function toUtc( string $lisbon ): string {
-		$dt = new \DateTimeImmutable( $lisbon, new \DateTimeZone( 'Europe/Lisbon' ) );
-		return $dt->setTimezone( new \DateTimeZone( 'UTC' ) )->format( 'Y-m-d H:i:s' );
+	private static function normalizeLisbon( string $lisbon ): string {
+		$dt = new \DateTimeImmutable( $lisbon, \NVF\BusBooking\Support\Time::zone() );
+		return $dt->format( 'Y-m-d H:i:s' );
 	}
 }

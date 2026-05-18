@@ -54,6 +54,10 @@ defined( 'ABSPATH' ) || exit;
 		</tr>
 	</table>
 
+	<p style="font-size: 11px; color: #5b7479; line-height: 1.6; margin: 0 0 22px;">
+		<?php echo esc_html( \NVF\BusBooking\Support\StringRenderer::render( 'pdf.on_the_day_header' ) ); ?>
+	</p>
+
 	<?php foreach ( (array) $legs as $leg ) :
 		$isWaitlist = $leg['status'] === 'waitlist';
 		$isCancel   = $leg['status'] === 'cancelled';
@@ -107,7 +111,7 @@ defined( 'ABSPATH' ) || exit;
 	<table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 8px; border-collapse: collapse; border-top: 1px solid #d8e5e7; padding-top: 16px;">
 		<tr>
 			<td style="padding-top: 18px; font-size: 11px; color: #5b7479; line-height: 1.6;">
-				<?php echo esc_html( \NVF\BusBooking\Support\StringRenderer::render( 'pdf.on_the_day' ) ); ?>
+				<?php echo esc_html( \NVF\BusBooking\Support\StringRenderer::render( 'pdf.on_the_day_footer' ) ); ?>
 				<?php if ( $cancellation_deadline ) : ?>
 					<br><?php echo esc_html( \NVF\BusBooking\Support\StringRenderer::render( 'pdf.cancellation_reminder', [
 						'cancellation_deadline' => $cancellation_deadline,
