@@ -10,7 +10,7 @@ namespace NVF\BusBooking\Admin;
 final class AdminMenu {
 
 	public const SLUG       = 'nvf-bus-booking';
-	public const CAPABILITY = 'manage_options';
+	public const CAPABILITY = 'edit_others_posts';
 
 	public static function register(): void {
 		add_action( 'admin_menu', [ self::class, 'menu' ] );
@@ -83,7 +83,7 @@ SVG;
 		}
 
 		$base = plugin_dir_url( dirname( __DIR__, 2 ) . '/nvf-bus-booking.php' );
-		$ver  = '1.1.0';
+		$ver  = NVF_BB_VERSION;
 		wp_enqueue_style(  'nvf-admin', $base . 'assets/css/admin.css', [], $ver );
 		wp_enqueue_script( 'nvf-admin', $base . 'assets/js/admin.js',  [], $ver, true );
 	}
