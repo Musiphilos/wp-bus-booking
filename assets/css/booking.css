@@ -348,6 +348,7 @@
 	gap: 1.4rem;
 	margin: 0.5rem 0 1.25rem;
 }
+.nvf-bb__trips--single { grid-template-columns: 1fr; }
 @media (max-width: 540px) { .nvf-bb__trips { grid-template-columns: 1fr; } }
 
 .nvf-bb__group {
@@ -616,6 +617,13 @@
 	color: var(--nvf-text);
 	box-shadow: 0 24px 60px rgba(1, 75, 81, 0.22);
 }
+/* Defend against theme rules that hide bare <dialog>. */
+dialog.nvf-bb__dialog[open] {
+	display: block;
+	position: fixed;
+	inset: 0;
+	margin: auto;
+}
 .nvf-bb__dialog::backdrop {
 	background: rgba(1, 75, 81, 0.42);
 	backdrop-filter: blur(2px);
@@ -650,4 +658,48 @@
 	background: #6d130e;
 	border-color: #6d130e;
 	box-shadow: 0 6px 14px rgba(136, 24, 18, 0.22);
+}
+
+/* Inline cancel-leg buttons: red-outlined so they read as destructive
+ * and stay visually distinct from the primary teal CTA even on hover. */
+.nvf-bb .nvf-bb__btn--danger-ghost {
+	background: transparent;
+	color: var(--nvf-error) !important;
+	border-color: var(--nvf-error);
+}
+.nvf-bb .nvf-bb__btn--danger-ghost:hover:not(:disabled) {
+	background: var(--nvf-error);
+	color: #ffffff !important;
+	border-color: var(--nvf-error);
+	box-shadow: 0 4px 10px rgba(136, 24, 18, 0.18);
+}
+.nvf-bb .nvf-bb__btn:focus-visible {
+	outline: 2px solid var(--nvf-primary);
+	outline-offset: 2px;
+}
+
+/* In-dialog "request in flight" feedback. */
+.nvf-bb__dialog-progress {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0 0 1.1rem;
+	font-size: 0.95em;
+	line-height: 1.5;
+	color: var(--nvf-muted);
+}
+.nvf-bb__spinner {
+	flex: 0 0 auto;
+	width: 16px;
+	height: 16px;
+	border-radius: 50%;
+	border: 2px solid #d8e5e7;
+	border-top-color: var(--nvf-primary);
+	animation: nvfSpin 720ms linear infinite;
+}
+@keyframes nvfSpin {
+	to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+	.nvf-bb__spinner { animation: none; border-top-color: var(--nvf-primary); }
 }

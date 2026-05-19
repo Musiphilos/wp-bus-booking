@@ -15,7 +15,7 @@ use NVF\BusBooking\Support\Time;
  * Each public method builds context, renders {template}.html.php + {template}.txt.php,
  * attaches a PDF where applicable, and sends. Every send is wrapped in PHPMailer
  * diagnostics that get logged at INFO on success / ERROR on failure so the operator
- * can audit delivery from the Debug Log page.
+ * can audit delivery from the server log.
  */
 final class Mailer {
 
@@ -66,7 +66,7 @@ final class Mailer {
 		return self::send( implode( ',', $recipients ), $subject, 'admin-notification', $context );
 	}
 
-	/** Live deliverability probe wired to the Debug Log button. */
+	/** Live deliverability probe wired to the Settings page "send test" button. */
 	public static function sendTest( string $to ): array {
 		self::$lastDiagnostics = [];
 		self::attachDiagnostics();

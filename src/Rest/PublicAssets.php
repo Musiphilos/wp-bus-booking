@@ -27,7 +27,6 @@ final class PublicAssets {
 
 	public static function enqueue(): void {
 		wp_register_style( 'nvf-bb', NVF_BB_URL . 'assets/css/booking.css', [], NVF_BB_VERSION );
-		wp_register_style( 'nvf-bb-debug', NVF_BB_URL . 'assets/css/debug-panel.css', [], NVF_BB_VERSION );
 		wp_register_script( 'nvf-bb', NVF_BB_URL . 'assets/js/booking.js', [], NVF_BB_VERSION, [ 'in_footer' => true, 'strategy' => 'defer' ] );
 		// Alpine vendored locally — see assets/js/vendor/. Must load AFTER booking.js so the component factory is registered before alpine:init fires.
 		wp_register_script(
@@ -37,7 +36,6 @@ final class PublicAssets {
 			self::ALPINE_VERSION,
 			[ 'in_footer' => true, 'strategy' => 'defer' ]
 		);
-		wp_register_script( 'nvf-bb-debug', NVF_BB_URL . 'assets/js/debug-panel.js', [], NVF_BB_VERSION, [ 'in_footer' => true, 'strategy' => 'defer' ] );
 	}
 
 	public static function bookingPageUrl(): string {
@@ -102,22 +100,6 @@ final class PublicAssets {
 			'before'
 		);
 
-		$debugEnabled = self::shouldShowDebug();
-		if ( $debugEnabled ) {
-			wp_enqueue_style( 'nvf-bb-debug' );
-			wp_enqueue_script( 'nvf-bb-debug' );
-			wp_add_inline_script(
-				'nvf-bb-debug',
-				'window.NVF_BB_DEBUG = ' . wp_json_encode( [
-					'restUrl'  => esc_url_raw( rest_url( 'nvf/v1/debug' ) ),
-					'nonce'    => wp_create_nonce( 'wp_rest' ),
-					'debugKey' => wp_create_nonce( \NVF\BusBooking\Rest\DebugController::NONCE_NAME ),
-					'pollMs'   => 5000,
-				] ) . ';',
-				'before'
-			);
-		}
-
 		// Shared token context for all booking-page strings. Built once so the
 		// renderer doesn't re-read settings on every call.
 		$textCtx = self::textContext();
@@ -153,9 +135,17 @@ final class PublicAssets {
 						<!-- ===== Step 2/3: Choose & confirm ===== -->
 						<template x-if="step === 'choose'">
 							<div>
-								<h2><?php esc_html_e( 'Step 2 · Choose your trip', 'nvf-bus-booking' ); ?></h2>
-								<p class="nvf-bb__muted">
+								<h2 x-show="!addingDirection"><?php esc_html_e( 'Step 2 · Choose your trip', 'nvf-bus-booking' ); ?></h2>
+								<h2 x-show="addingDirection === 'inbound'" style="display:none"><?php esc_html_e( 'Book your inbound shuttle', 'nvf-bus-booking' ); ?></h2>
+								<h2 x-show="addingDirection === 'outbound'" style="display:none"><?php esc_html_e( 'Book your outbound shuttle', 'nvf-bus-booking' ); ?></h2>
+								<p class="nvf-bb__muted" x-show="!addingDirection">
 									<?php esc_html_e( "Pick one inbound shuttle (Sep 24) and / or one outbound shuttle (Sep 28). You can book just one direction if you're arriving or leaving on your own.", 'nvf-bus-booking' ); ?>
+								</p>
+								<p class="nvf-bb__muted" x-show="addingDirection === 'inbound'" style="display:none">
+									<?php esc_html_e( 'Pick a new inbound shuttle. Your outbound booking stays as it is.', 'nvf-bus-booking' ); ?>
+								</p>
+								<p class="nvf-bb__muted" x-show="addingDirection === 'outbound'" style="display:none">
+									<?php esc_html_e( 'Pick a new outbound shuttle. Your inbound booking stays as it is.', 'nvf-bus-booking' ); ?>
 								</p>
 
 								<template x-if="!trips.loaded">
@@ -173,9 +163,9 @@ final class PublicAssets {
 								<p class="nvf-bb__sr-only" x-show="!trips.loaded" role="status"><?php esc_html_e( 'Loading trips…', 'nvf-bus-booking' ); ?></p>
 
 								<template x-if="trips.loaded">
-									<div class="nvf-bb__trips">
+									<div class="nvf-bb__trips" :class="{ 'nvf-bb__trips--single': addingDirection }">
 										<!-- Inbound -->
-										<fieldset class="nvf-bb__group">
+										<fieldset class="nvf-bb__group" x-show="addingDirection !== 'outbound'">
 											<legend><?php esc_html_e( 'Inbound · Sep 24', 'nvf-bus-booking' ); ?></legend>
 											<template x-for="t in trips.inbound" :key="t.id">
 												<label class="nvf-bb__trip"
@@ -211,7 +201,7 @@ final class PublicAssets {
 										</fieldset>
 
 										<!-- Outbound -->
-										<fieldset class="nvf-bb__group">
+										<fieldset class="nvf-bb__group" x-show="addingDirection !== 'inbound'">
 											<legend><?php esc_html_e( 'Outbound · Sep 28', 'nvf-bus-booking' ); ?></legend>
 											<template x-for="t in trips.outbound" :key="t.id">
 												<label class="nvf-bb__trip"
@@ -239,37 +229,47 @@ final class PublicAssets {
 									<span><?php echo esc_html( StringRenderer::render( 'booking.gdpr_label' ) ); ?></span>
 								</label>
 
-								<template x-if="error">
-									<p class="nvf-bb__error" role="alert" aria-live="assertive" x-text="error"></p>
-								</template>
+								<p class="nvf-bb__error" role="alert" aria-live="assertive" x-show="error" x-text="error"></p>
 
 								<div class="nvf-bb__actions">
 									<button type="button" class="nvf-bb__btn" :disabled="!canSubmit()" @click="submitBooking">
 										<span x-show="!busy"><?php esc_html_e( 'Confirm booking', 'nvf-bus-booking' ); ?></span>
 										<span x-show="busy"><?php esc_html_e( 'Saving…', 'nvf-bus-booking' ); ?></span>
 									</button>
-									<button type="button" class="nvf-bb__btn nvf-bb__btn--ghost" @click="signOut">
+									<button type="button" class="nvf-bb__btn nvf-bb__btn--ghost" :disabled="busy" x-show="!addingDirection" @click="signOut">
 										<?php esc_html_e( 'Use a different email', 'nvf-bus-booking' ); ?>
 									</button>
+									<button type="button" class="nvf-bb__btn nvf-bb__btn--ghost" :disabled="busy" x-show="addingDirection" style="display:none" @click="cancelAddDirection">
+										<?php esc_html_e( 'Keep my current booking', 'nvf-bus-booking' ); ?>
+									</button>
 								</div>
+
+								<p class="nvf-bb__dialog-progress" role="status" aria-live="polite" x-show="busy" style="display:none; margin-top: 1rem;">
+									<span class="nvf-bb__spinner" aria-hidden="true"></span>
+									<span><?php esc_html_e( 'Saving your booking — this can take a few seconds…', 'nvf-bus-booking' ); ?></span>
+								</p>
 							</div>
 						</template>
 
 						<!-- ===== Partial availability — informational, booking already committed ===== -->
 						<template x-if="step === 'partial'">
 							<div>
-								<h2><?php esc_html_e( 'Booking saved — partial availability', 'nvf-bus-booking' ); ?></h2>
-								<p class="nvf-bb__muted">
+								<h2 x-show="!addingDirection"><?php esc_html_e( 'Booking saved — partial availability', 'nvf-bus-booking' ); ?></h2>
+								<h2 x-show="addingDirection" style="display:none"><?php esc_html_e( 'Saved — on the waiting list', 'nvf-bus-booking' ); ?></h2>
+								<p class="nvf-bb__muted" x-show="!addingDirection">
 									<?php esc_html_e( 'One of the trips you picked is full. You are on the waiting list for that one and confirmed for the other. We will email you if a seat opens.', 'nvf-bus-booking' ); ?>
 								</p>
+								<p class="nvf-bb__muted" x-show="addingDirection" style="display:none">
+									<?php esc_html_e( 'That shuttle is full, so you are on the waiting list for it. Your other booking is unchanged. We will email you if a seat opens.', 'nvf-bus-booking' ); ?>
+								</p>
 								<div class="nvf-bb__summary">
-									<template x-if="booking && booking.inbound && booking.inbound.status !== 'none'">
+									<template x-if="booking && booking.inbound && booking.inbound.status !== 'none' && addingDirection !== 'outbound'">
 										<div class="nvf-bb__summary-row">
 											<span><?php esc_html_e( 'Inbound', 'nvf-bus-booking' ); ?></span>
 											<span x-text="statusLabel(booking.inbound.status)"></span>
 										</div>
 									</template>
-									<template x-if="booking && booking.outbound && booking.outbound.status !== 'none'">
+									<template x-if="booking && booking.outbound && booking.outbound.status !== 'none' && addingDirection !== 'inbound'">
 										<div class="nvf-bb__summary-row">
 											<span><?php esc_html_e( 'Outbound', 'nvf-bus-booking' ); ?></span>
 											<span x-text="statusLabel(booking.outbound.status)"></span>
@@ -277,7 +277,7 @@ final class PublicAssets {
 									</template>
 								</div>
 								<div class="nvf-bb__actions">
-									<button type="button" class="nvf-bb__btn" @click="step = 'done'; focusStepHeading()"><?php esc_html_e( 'See booking', 'nvf-bus-booking' ); ?></button>
+									<button type="button" class="nvf-bb__btn" @click="addingDirection = null; step = 'done'; focusStepHeading()"><?php esc_html_e( 'See booking', 'nvf-bus-booking' ); ?></button>
 								</div>
 							</div>
 						</template>
@@ -309,10 +309,32 @@ final class PublicAssets {
 											</template>
 										</div>
 										<button type="button"
-										        class="nvf-bb__btn nvf-bb__btn--ghost nvf-bb__btn--small"
+										        class="nvf-bb__btn nvf-bb__btn--danger-ghost nvf-bb__btn--small"
+										        x-show="booking.inbound.status !== 'cancelled'"
 										        :disabled="busy && cancelDirection === 'inbound'"
 										        @click="openCancelDialog('inbound')">
 											<?php esc_html_e( 'Cancel inbound', 'nvf-bus-booking' ); ?>
+										</button>
+										<button type="button"
+										        class="nvf-bb__btn nvf-bb__btn--small"
+										        x-show="booking.inbound.status === 'cancelled'"
+										        style="display:none"
+										        @click="startAddDirection('inbound')">
+											<?php esc_html_e( 'Book inbound again', 'nvf-bus-booking' ); ?>
+										</button>
+									</div>
+								</template>
+
+								<template x-if="!booking.inbound || booking.inbound.status === 'none'">
+									<div class="nvf-bb__leg">
+										<div class="nvf-bb__leg-head">
+											<span class="nvf-bb__leg-dir"><?php esc_html_e( 'Inbound', 'nvf-bus-booking' ); ?></span>
+											<span class="nvf-bb__leg-status"><?php esc_html_e( 'Not booked', 'nvf-bus-booking' ); ?></span>
+										</div>
+										<button type="button"
+										        class="nvf-bb__btn nvf-bb__btn--small"
+										        @click="startAddDirection('inbound')">
+											<?php esc_html_e( 'Book inbound', 'nvf-bus-booking' ); ?>
 										</button>
 									</div>
 								</template>
@@ -333,17 +355,37 @@ final class PublicAssets {
 											</template>
 										</div>
 										<button type="button"
-										        class="nvf-bb__btn nvf-bb__btn--ghost nvf-bb__btn--small"
+										        class="nvf-bb__btn nvf-bb__btn--danger-ghost nvf-bb__btn--small"
+										        x-show="booking.outbound.status !== 'cancelled'"
 										        :disabled="busy && cancelDirection === 'outbound'"
 										        @click="openCancelDialog('outbound')">
 											<?php esc_html_e( 'Cancel outbound', 'nvf-bus-booking' ); ?>
 										</button>
+										<button type="button"
+										        class="nvf-bb__btn nvf-bb__btn--small"
+										        x-show="booking.outbound.status === 'cancelled'"
+										        style="display:none"
+										        @click="startAddDirection('outbound')">
+											<?php esc_html_e( 'Book outbound again', 'nvf-bus-booking' ); ?>
+										</button>
 									</div>
 								</template>
 
-								<template x-if="error">
-									<p class="nvf-bb__error" role="alert" aria-live="assertive" x-text="error"></p>
+								<template x-if="!booking.outbound || booking.outbound.status === 'none'">
+									<div class="nvf-bb__leg">
+										<div class="nvf-bb__leg-head">
+											<span class="nvf-bb__leg-dir"><?php esc_html_e( 'Outbound', 'nvf-bus-booking' ); ?></span>
+											<span class="nvf-bb__leg-status"><?php esc_html_e( 'Not booked', 'nvf-bus-booking' ); ?></span>
+										</div>
+										<button type="button"
+										        class="nvf-bb__btn nvf-bb__btn--small"
+										        @click="startAddDirection('outbound')">
+											<?php esc_html_e( 'Book outbound', 'nvf-bus-booking' ); ?>
+										</button>
+									</div>
 								</template>
+
+								<p class="nvf-bb__error" role="alert" aria-live="assertive" x-show="error" x-text="error"></p>
 
 								<p class="nvf-bb__fine">
 									<?php echo self::linkifyContact( StringRenderer::render( 'booking.help_line', $textCtx ), $textCtx['contact_email'] ); ?>
@@ -374,12 +416,8 @@ final class PublicAssets {
 							<input id="nvf-bb-email" class="nvf-bb__input" type="email" autocomplete="email"
 							       required x-model.trim="email" :disabled="busy || linkSent" placeholder="you@example.com" />
 
-							<template x-if="error">
-								<p class="nvf-bb__error" role="alert" aria-live="assertive" x-text="error"></p>
-							</template>
-							<template x-if="notice">
-								<p class="nvf-bb__notice" role="status" aria-live="polite" x-text="notice"></p>
-							</template>
+							<p class="nvf-bb__error" role="alert" aria-live="assertive" x-show="error" x-text="error"></p>
+							<p class="nvf-bb__notice" role="status" aria-live="polite" x-show="notice" x-text="notice"></p>
 
 							<!-- Pre-send CTA: only shown until the magic-link has been requested. -->
 							<div class="nvf-bb__actions" x-show="!linkSent">
@@ -417,18 +455,23 @@ final class PublicAssets {
 				</template>
 
 				<!-- Cancel-confirm dialog -->
-				<dialog id="nvf-bb-confirm" class="nvf-bb__dialog" @close="confirmOpen = false; confirmDirection = null">
+				<dialog id="nvf-bb-confirm" class="nvf-bb__dialog" aria-labelledby="nvf-bb-confirm-title" @close="confirmOpen = false; confirmDirection = null" @cancel="if (busy) $event.preventDefault()">
 					<div class="nvf-bb__dialog-body">
-						<h3><?php esc_html_e( 'Cancel this leg?', 'nvf-bus-booking' ); ?></h3>
-						<p>
+						<h3 id="nvf-bb-confirm-title"><?php esc_html_e( 'Cancel this leg?', 'nvf-bus-booking' ); ?></h3>
+						<p x-show="!busy">
 							<?php esc_html_e( 'This releases your seat (or waitlist position) for the selected direction. You can re-book later if seats are still available.', 'nvf-bus-booking' ); ?>
 						</p>
+						<p class="nvf-bb__dialog-progress" role="status" aria-live="polite" x-show="busy">
+							<span class="nvf-bb__spinner" aria-hidden="true"></span>
+							<span><?php esc_html_e( 'Releasing your seat — this can take a few seconds…', 'nvf-bus-booking' ); ?></span>
+						</p>
 						<div class="nvf-bb__dialog-actions">
-							<button type="button" class="nvf-bb__btn nvf-bb__btn--ghost nvf-bb__btn--small" @click="closeCancelDialog">
+							<button type="button" class="nvf-bb__btn nvf-bb__btn--ghost nvf-bb__btn--small" :disabled="busy" @click="closeCancelDialog">
 								<?php esc_html_e( 'Keep it', 'nvf-bus-booking' ); ?>
 							</button>
-							<button type="button" class="nvf-bb__btn nvf-bb__btn--danger nvf-bb__btn--small" data-confirm-cancel @click="confirmCancel">
-								<?php esc_html_e( 'Yes, cancel', 'nvf-bus-booking' ); ?>
+							<button type="button" class="nvf-bb__btn nvf-bb__btn--danger nvf-bb__btn--small" data-confirm-cancel :disabled="busy" @click="confirmCancel">
+								<span x-show="!busy"><?php esc_html_e( 'Yes, cancel', 'nvf-bus-booking' ); ?></span>
+								<span x-show="busy"><?php esc_html_e( 'Cancelling…', 'nvf-bus-booking' ); ?></span>
 							</button>
 						</div>
 					</div>
@@ -450,9 +493,6 @@ final class PublicAssets {
 				</p>
 			<?php endif; ?>
 
-			<?php if ( $debugEnabled ) : ?>
-				<div id="nvf-debug-root"></div>
-			<?php endif; ?>
 		</section>
 		<?php
 		return (string) ob_get_clean();
@@ -510,14 +550,6 @@ final class PublicAssets {
 			return [ 'type' => 'error', 'message' => $map[ $code ] ?? __( 'Something went wrong. Please try again.', 'nvf-bus-booking' ) ];
 		}
 		return [ 'type' => null, 'message' => '' ];
-	}
-
-	private static function shouldShowDebug(): bool {
-		if ( current_user_can( 'manage_options' ) ) {
-			return true;
-		}
-		$nonce = isset( $_GET['nvf_debug'] ) ? (string) $_GET['nvf_debug'] : '';
-		return $nonce !== '' && wp_verify_nonce( $nonce, \NVF\BusBooking\Rest\DebugController::NONCE_NAME ) !== false;
 	}
 
 	/**

@@ -176,6 +176,31 @@
 }
 .nvf-manifest-row--hidden { display: none !important; }
 
+/* ── Manifest: sortable column headers ─────────────────── */
+.nvf-sortable {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+.nvf-sortable::after {
+    content: ' \2195'; /* ↕ */
+    opacity: 0.35;
+    font-size: 0.8em;
+}
+.nvf-sortable[aria-sort="ascending"]::after {
+    content: ' \2191'; /* ↑ */
+    opacity: 1;
+}
+.nvf-sortable[aria-sort="descending"]::after {
+    content: ' \2193'; /* ↓ */
+    opacity: 1;
+}
+.nvf-sortable:hover,
+.nvf-sortable:focus-visible {
+    background: #f0f6f7;
+    outline: none;
+}
+
 /* ── Manifest: responsive table ────────────────────────── */
 @media (max-width: 782px) {
     .nvf-manifest-table {

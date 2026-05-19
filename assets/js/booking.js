@@ -48,6 +48,9 @@
 			step: 'choose',
 			booking: null,
 			cancelDirection: null,
+			// When set, the "choose" step is being re-entered to add/replace a
+			// single direction without disturbing the other leg.
+			addingDirection: null,
 
 			// Confirm dialog
 			confirmOpen: false,
@@ -70,7 +73,10 @@
 			// ---- Auth ----
 			async submitEmail() {
 				if (!this.email || this.busy) return;
-				this.busy = true; this.error = ''; this.notice = '';
+				this.busy = true; this.error = '';
+				// Preserve the success notice on resend so a subsequent 429 doesn't
+				// wipe the "we sent you a link" message from the user's view.
+				if (!this.linkSent) this.notice = '';
 				try {
 					const res = await apiFetch('/verify-email', { method: 'POST', body: { email: this.email } });
 					if (res.status === 429) {
@@ -123,10 +129,31 @@
 				try { await apiFetch('/logout', { method: 'POST' }); } catch (_) {}
 				this.signedIn = false; this.profile = null; this.email = '';
 				this.trips = { inbound: [], outbound: [], loaded: false, _byId: new Map() };
-				this.booking = null; this.bookingResult = null;
+				this.booking = null;
 				this.selection = { inbound_trip_id: 0, inbound_pickup: '', outbound_trip_id: 0 };
 				this.step = 'choose';
+				this.addingDirection = null;
 				this.linkSent = false;
+			},
+
+			// ---- Single-direction add / re-book ----
+			startAddDirection(direction) {
+				if (direction !== 'inbound' && direction !== 'outbound') return;
+				this.addingDirection = direction;
+				this.selection = { inbound_trip_id: 0, inbound_pickup: '', outbound_trip_id: 0 };
+				this.gdpr = false;
+				this.error = '';
+				this.step = 'choose';
+				this.focusStepHeading();
+			},
+
+			cancelAddDirection() {
+				this.addingDirection = null;
+				this.selection = { inbound_trip_id: 0, inbound_pickup: '', outbound_trip_id: 0 };
+				this.gdpr = false;
+				this.error = '';
+				this.step = 'done';
+				this.focusStepHeading();
 			},
 
 			// ---- Booking flow ----
@@ -186,6 +213,12 @@
 			canSubmit() {
 				if (this.busy) return false;
 				if (!this.gdpr) return false;
+				if (this.addingDirection === 'inbound') {
+					return !!this.selection.inbound_trip_id && !!this.selection.inbound_pickup;
+				}
+				if (this.addingDirection === 'outbound') {
+					return !!this.selection.outbound_trip_id;
+				}
 				if (!this.selection.inbound_trip_id && !this.selection.outbound_trip_id) return false;
 				if (this.selection.inbound_trip_id && !this.selection.inbound_pickup) return false;
 				return true;
@@ -208,9 +241,12 @@
 						this.error = (res.json && res.json.message) || t('book_failed', 'Could not save the booking.');
 						return;
 					}
-					this.bookingResult = res.json.result;
 					await this.loadBooking();
 					this.step = res.json.partial ? 'partial' : 'done';
+					// Keep addingDirection set through the partial step so the
+					// summary can show only the leg that was just touched. The
+					// "See booking" button on the partial step clears it.
+					if (this.step !== 'partial') this.addingDirection = null;
 					this.focusStepHeading();
 				} catch (err) {
 					this.error = t('network_error', 'Network error. Please try again.');
@@ -222,12 +258,27 @@
 
 			// ---- Cancel via styled <dialog> ----
 			openCancelDialog(direction) {
+				const dlg = document.getElementById('nvf-bb-confirm');
+				if (!dlg) {
+					console.error('[nvf-bb] confirm dialog missing from DOM');
+					return;
+				}
 				this.confirmDirection = direction;
 				this.confirmOpen = true;
+				if (typeof dlg.showModal === 'function') {
+					if (!dlg.open) dlg.showModal();
+				} else {
+					// Old browser without <dialog>. Fallback so cancellation still works.
+					if (window.confirm('Cancel ' + direction + '?')) {
+						this.confirmCancel();
+					} else {
+						this.confirmDirection = null;
+						this.confirmOpen = false;
+					}
+					return;
+				}
 				this.$nextTick(() => {
-					const dlg = document.getElementById('nvf-bb-confirm');
-					if (dlg && typeof dlg.showModal === 'function' && !dlg.open) dlg.showModal();
-					const btn = dlg && dlg.querySelector('[data-confirm-cancel]');
+					const btn = dlg.querySelector('[data-confirm-cancel]');
 					if (btn) btn.focus();
 				});
 			},
@@ -241,21 +292,24 @@
 
 			async confirmCancel() {
 				const direction = this.confirmDirection;
-				this.closeCancelDialog();
-				if (!direction) return;
+				if (!direction || this.busy) return;
+				// Keep the dialog open while the DELETE is in flight so the user
+				// has unmistakable feedback (the request can take 5+ seconds).
 				this.busy = true; this.cancelDirection = direction; this.error = '';
 				try {
 					const res = await apiFetch('/my-booking?direction=' + encodeURIComponent(direction), { method: 'DELETE' });
 					if (res.json && res.json.booking) this.booking = res.json.booking;
 					if (!this.hasAnyActiveDirection(this.booking)) {
 						this.step = 'choose';
-						this.bookingResult = null;
 						this.selection = { inbound_trip_id: 0, inbound_pickup: '', outbound_trip_id: 0 };
 						this.gdpr = false;
+						this.addingDirection = null;
 					}
+					this.closeCancelDialog();
 				} catch (err) {
 					this.error = t('cancel_failed', 'Could not cancel. Please retry.');
 					console.error('[nvf-bb] cancel failed', err);
+					this.closeCancelDialog();
 				} finally {
 					this.busy = false;
 					this.cancelDirection = null;
@@ -265,10 +319,18 @@
 			focusStepHeading() {
 				this.$nextTick(() => {
 					const card = document.querySelector('.nvf-bb__card');
-					const h = card && card.querySelector('h2');
-					if (h) {
-						h.setAttribute('tabindex', '-1');
-						h.focus({ preventScroll: false });
+					if (!card) return;
+					// Several siblings can share the heading slot (one per
+					// addingDirection state). Pick the one Alpine left visible.
+					const headings = card.querySelectorAll('h2');
+					let target = null;
+					for (const h of headings) {
+						if (h.offsetParent !== null) { target = h; break; }
+					}
+					if (!target) target = headings[0];
+					if (target) {
+						target.setAttribute('tabindex', '-1');
+						target.focus({ preventScroll: false });
 					}
 				});
 			},

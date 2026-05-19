@@ -20,7 +20,6 @@ use NVF\BusBooking\Domain\EmailUniqueness;
 use NVF\BusBooking\Domain\MetaBoxes;
 use NVF\BusBooking\Domain\PostTypes;
 use NVF\BusBooking\Mcp\Abilities;
-use NVF\BusBooking\Rest\DebugController;
 use NVF\BusBooking\Rest\PublicAssets;
 use NVF\BusBooking\Support\Activator;
 use NVF\BusBooking\Support\Logger;
@@ -53,11 +52,10 @@ final class Plugin {
 			Abilities::register();
 		}
 
-		// Shortcode + frontend assets (booking page placeholder + debug panel).
+		// Shortcode + frontend assets (booking page).
 		PublicAssets::register();
 
 		// REST.
-		DebugController::register();
 		MagicLinkController::register();
 		BookingController::register();
 		ClaimController::register();

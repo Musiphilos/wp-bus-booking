@@ -180,6 +180,42 @@ final class ManifestPage {
 				</tbody>
 			</table>
 
+			<?php
+			// Print-only boarding sheet: dense two-column grid with just what
+			// the boarding crew needs to tick passengers off. Only confirmed
+			// passengers are included; waitlist + cancelled are excluded.
+			// Sorted by pickup (AIR before C.Mus) then by first name so the
+			// crew at each stop can read straight down the list.
+			$boarding = array_values( array_filter( $rows, static fn( $r ) => ( $r['status'] ?? '' ) === 'confirmed' ) );
+			usort( $boarding, static function ( $a, $b ) {
+				$pa = self::pickupShort( $a['pickup'] ?? '' );
+				$pb = self::pickupShort( $b['pickup'] ?? '' );
+				if ( $pa !== $pb ) {
+					// Empty pickup (outbound) sinks to the end; otherwise alphabetical
+					// (AIR before C.Mus, which is what the inbound crew expects).
+					if ( $pa === '' ) return 1;
+					if ( $pb === '' ) return -1;
+					return strcmp( $pa, $pb );
+				}
+				$fa = strtolower( strtok( trim( (string) ( $a['name'] ?? '' ) ), ' ' ) ?: '' );
+				$fb = strtolower( strtok( trim( (string) ( $b['name'] ?? '' ) ), ' ' ) ?: '' );
+				return strcmp( $fa, $fb );
+			} );
+			?>
+			<ol class="nvf-print-grid">
+				<?php foreach ( $boarding as $r ) : ?>
+					<?php $pickupShort = self::pickupShort( $r['pickup'] ?? '' ); ?>
+					<li class="nvf-print-grid__item">
+						<span class="nvf-print-grid__box" aria-hidden="true"></span>
+						<span class="nvf-print-grid__name"><?php echo esc_html( $r['name'] ?: '—' ); ?></span>
+						<span class="nvf-print-grid__phone"><?php echo esc_html( $r['phone'] ?: '—' ); ?></span>
+						<?php if ( $pickupShort !== '' ) : ?>
+							<span class="nvf-print-grid__pickup"><?php echo esc_html( $pickupShort ); ?></span>
+						<?php endif; ?>
+					</li>
+				<?php endforeach; ?>
+			</ol>
+
 			<form id="nvf-bulk-promote-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="no-print" style="margin-top:1rem;">
 				<?php wp_nonce_field( 'nvf_promote_bulk_' . $tripId, 'nvf_bulk_nonce' ); ?>
 				<input type="hidden" name="action"    value="nvf_promote_bulk" />
@@ -209,6 +245,9 @@ final class ManifestPage {
 			.nvf-pill--waitlist  { background: #fef7e1; color: #92580a; }
 			.nvf-pill--cancelled { background: #fdecec; color: #881812; }
 
+			/* Print-only boarding grid is hidden on screen. */
+			.nvf-print-grid { display: none; }
+
 			@media print {
 				@page { size: A4 portrait; margin: 10mm 12mm; }
 
@@ -219,33 +258,58 @@ final class ManifestPage {
 				body { background: #fff; }
 
 				.nvf-manifest__title { font-size: 18px; margin: 0; }
-				.nvf-manifest__meta  { font-size: 10px; margin: 2px 0 8px; }
+				.nvf-manifest__meta  { font-size: 10px; margin: 2px 0 10px; }
 
-				/* Dense table: ~9.5px text, ~3px row padding → ≥55 rows fit on one A4 page. */
-				.nvf-manifest__table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 9.5px; line-height: 1.15; }
-				.nvf-manifest__table th,
-				.nvf-manifest__table td { border: 1px solid #444; padding: 2px 5px; vertical-align: middle; }
-				.nvf-manifest__table thead th { background: #eee; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+				/* Hide the on-screen admin table; print uses the dedicated boarding grid below. */
+				.nvf-manifest__table,
+				.nvf-manifest-search { display: none !important; }
 
-				/* Allow long emails to wrap without ballooning the row. */
-				.nvf-manifest__table td { word-break: break-word; overflow-wrap: anywhere; }
-
-				/* Column widths tuned for 7 visible columns (Actions + bulk-cb hidden). */
-				.nvf-manifest__table .nvf-cb-col  { display: none !important; }
-				.nvf-manifest__table .nvf-tick    { width: 5%;  text-align: center; padding: 0; }
-				.nvf-manifest__table th:nth-child(3), .nvf-manifest__table td:nth-child(3) { width: 19%; } /* Name */
-				.nvf-manifest__table th:nth-child(4), .nvf-manifest__table td:nth-child(4) { width: 28%; } /* Email */
-				.nvf-manifest__table th:nth-child(5), .nvf-manifest__table td:nth-child(5) { width: 12%; } /* Phone */
-				.nvf-manifest__table th:nth-child(6), .nvf-manifest__table td:nth-child(6) { width: 12%; } /* Pickup (inbound only) — for outbound this slot is Status */
-				.nvf-manifest__table th:nth-child(7), .nvf-manifest__table td:nth-child(7) { width: 12%; } /* Status / Ref */
-				.nvf-manifest__table th:nth-child(8), .nvf-manifest__table td:nth-child(8) { width: 12%; } /* Ref */
-				.nvf-manifest__table .nvf-actions { display: none !important; }
-
-				/* Empty checkbox at fixed size so rows stay uniform. */
-				.nvf-tick input { width: 11px; height: 11px; margin: 0; }
-
-				/* Strip pill chrome — keep the word only, with a muted weight to save ink. */
-				.nvf-pill { border: 0 !important; padding: 0 !important; background: transparent !important; color: inherit !important; font-weight: 700; letter-spacing: 0.04em; }
+				/* Two-column boarding grid: each row is a single line — checkbox,
+				 * bold name, muted phone, pickup tag — so ~30 rows fit per
+				 * column (60 per A4 page). */
+				.nvf-print-grid {
+					display: block;
+					column-count: 2;
+					column-gap: 8mm;
+					margin: 0;
+					padding: 0;
+					list-style: decimal-leading-zero inside;
+					font-size: 10pt;
+					line-height: 1.15;
+					color: #000;
+				}
+				.nvf-print-grid__item {
+					break-inside: avoid;
+					page-break-inside: avoid;
+					padding: 2px 0;
+					border-bottom: 1px dashed #bbb;
+					display: flex;
+					align-items: center;
+					gap: 6px;
+				}
+				.nvf-print-grid__item::marker { font-size: 7.5pt; color: #666; }
+				.nvf-print-grid__box {
+					flex: 0 0 auto;
+					width: 10px;
+					height: 10px;
+					border: 1px solid #000;
+				}
+				.nvf-print-grid__name  { font-weight: 700; }
+				.nvf-print-grid__phone {
+					font-size: 9pt;
+					color: #444;
+					font-variant-numeric: tabular-nums;
+					margin-left: auto;
+				}
+				.nvf-print-grid__pickup {
+					flex: 0 0 auto;
+					font-size: 7.5pt;
+					font-weight: 700;
+					letter-spacing: 0.05em;
+					padding: 0 3px;
+					border: 1px solid #000;
+					border-radius: 2px;
+				}
 
 				a, a:visited { color: inherit; text-decoration: none; }
 			}
@@ -473,6 +537,14 @@ final class ManifestPage {
 			'airport'        => 'Airport',
 			'casa_da_musica' => 'Casa da Música',
 		][ $code ] ?? ( $code ?: '—' );
+	}
+
+	/** Boarding-sheet abbreviation. Empty for unset/outbound. */
+	private static function pickupShort( string $code ): string {
+		return [
+			'airport'        => 'AIR',
+			'casa_da_musica' => 'C.Mus',
+		][ $code ] ?? '';
 	}
 
 	private static function lisbonHuman( string $dt ): string {

@@ -1,5 +1,41 @@
 /* LB Swing — Bus Booking admin JS. */
 
+/* ── Manifest: sortable column headers ─────────────────── */
+(function () {
+    var table = document.querySelector('.nvf-manifest-table');
+    if (!table) return;
+
+    var tbody   = table.tBodies[0];
+    var headers = table.querySelectorAll('th.nvf-sortable');
+    if (!headers.length) return;
+
+    headers.forEach(function (th) {
+        th.addEventListener('click', sort);
+        th.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); sort.call(th); }
+        });
+    });
+
+    function sort() {
+        var th        = this;
+        var col       = parseInt(th.dataset.col, 10);
+        var ascending = th.getAttribute('aria-sort') !== 'ascending';
+
+        headers.forEach(function (h) { h.setAttribute('aria-sort', 'none'); });
+        th.setAttribute('aria-sort', ascending ? 'ascending' : 'descending');
+
+        var rows = Array.from(tbody.querySelectorAll('tr.nvf-manifest-row'));
+        rows.sort(function (a, b) {
+            var aVal = a.cells[col] ? a.cells[col].textContent.trim().toLowerCase() : '';
+            var bVal = b.cells[col] ? b.cells[col].textContent.trim().toLowerCase() : '';
+            if (aVal < bVal) return ascending ? -1 : 1;
+            if (aVal > bVal) return ascending ?  1 : -1;
+            return 0;
+        });
+        rows.forEach(function (row) { tbody.appendChild(row); });
+    }
+}());
+
 /* ── Manifest: passenger search filter ─────────────────── */
 (function () {
     var input   = document.getElementById('nvf-manifest-search');
