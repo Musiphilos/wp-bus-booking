@@ -40,6 +40,8 @@ final class Plugin {
 		}
 		self::$booted = true;
 
+		load_plugin_textdomain( 'nvf-bus-booking', false, dirname( plugin_basename( NVF_BB_FILE ) ) . '/languages' );
+
 		// Domain.
 		PostTypes::register();
 		MetaBoxes::register();

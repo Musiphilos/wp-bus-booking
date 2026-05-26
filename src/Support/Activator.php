@@ -28,10 +28,7 @@ final class Activator {
 	}
 
 	public static function tearDown(): void {
-		$timestamp = wp_next_scheduled( self::CRON_HOOK );
-		if ( $timestamp ) {
-			wp_unschedule_event( $timestamp, self::CRON_HOOK );
-		}
+		wp_clear_scheduled_hook( self::CRON_HOOK );
 	}
 
 	private static function ensureSecret(): void {
