@@ -107,16 +107,28 @@ final class MagicLinkController {
 			return $response;
 		}
 
-		$match = ElementorLookup::findByEmail( $email );
-
-		if ( $match ) {
-			$ttlHours = (int) \NVF\BusBooking\Support\Settings::get( 'nvf_magic_link_expiry_hours', self::TOKEN_TTL_FALLBACK );
-			$token    = TokenSigner::sign( $email, $ttlHours * HOUR_IN_SECONDS, TokenSigner::KIND_LINK );
-			$url      = add_query_arg( 'token', $token, rest_url( self::NAMESPACE . '/consume' ) );
-			Mailer::sendMagicLink( $email, $url, $ttlHours );
-			Logger::info( 'magic_link.issued', [ 'email' => self::mask( $email ) ] );
-		} else {
-			Logger::info( 'magic_link.unknown_email', [ 'email' => self::mask( $email ) ] );
+		// The whole lookup-and-issue block is guarded: any failure (a lookup
+		// error, a missing signing secret, a mail transport error, …) must not
+		// change the HTTP response. A 500 that fires only for registered emails
+		// turns this endpoint into an enumeration oracle and leaks a critical-
+		// error page. On any throw we log and fall through to the same generic
+		// 200 an unknown email returns.
+		try {
+			$match = ElementorLookup::findByEmail( $email );
+			if ( $match ) {
+				$ttlHours = (int) \NVF\BusBooking\Support\Settings::get( 'nvf_magic_link_expiry_hours', self::TOKEN_TTL_FALLBACK );
+				$token    = TokenSigner::sign( $email, $ttlHours * HOUR_IN_SECONDS, TokenSigner::KIND_LINK );
+				$url      = add_query_arg( 'token', $token, rest_url( self::NAMESPACE . '/consume' ) );
+				Mailer::sendMagicLink( $email, $url, $ttlHours );
+				Logger::info( 'magic_link.issued', [ 'email' => self::mask( $email ) ] );
+			} else {
+				Logger::info( 'magic_link.unknown_email', [ 'email' => self::mask( $email ) ] );
+			}
+		} catch ( \Throwable $e ) {
+			Logger::error( 'magic_link.issue_failed', [
+				'email'  => self::mask( $email ),
+				'reason' => $e->getMessage(),
+			] );
 		}
 
 		// Always 200 with the same payload — no enumeration leak.
