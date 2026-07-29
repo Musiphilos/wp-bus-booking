@@ -25,7 +25,7 @@ use NVF\BusBooking\Domain\PostTypes;
  *      - departure_human        'Thu 24 Sep · 14:30'
  *      - departure_iso          ISO-8601 with Europe/Lisbon offset (or '' if unparseable)
  *      - pickup_label           string (inbound only, '' if none)
- *      - stops                  array<int,{label,time}>
+ *      - stops                  array<int,{label,time,map_link}>
  *  - cancellation_deadline string|null  ('Sun 27 Sep · 23:59' or null)
  *  - portal_url            string
  */
@@ -104,7 +104,11 @@ final class BookingContext {
 		$out = [];
 		foreach ( $raw as $row ) {
 			if ( is_array( $row ) && isset( $row['label'], $row['time'] ) ) {
-				$out[] = [ 'label' => (string) $row['label'], 'time' => (string) $row['time'] ];
+				$out[] = [
+					'label'    => (string) $row['label'],
+					'time'     => (string) $row['time'],
+					'map_link' => esc_url_raw( (string) ( $row['map_link'] ?? '' ) ),
+				];
 			}
 		}
 		return $out;

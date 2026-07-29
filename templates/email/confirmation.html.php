@@ -44,6 +44,22 @@ $render_ctx['participant_name'] = $participant_name !== '' ? $participant_name :
 					<strong style="color:#036773;">Pickup:</strong> <?php echo esc_html( $leg['pickup_label'] ); ?>
 				</td></tr>
 			<?php endif; ?>
+			<?php if ( ! empty( $leg['stops'] ) ) : ?>
+				<tr><td style="padding:12px 16px;font-size:13px;">
+					<strong style="color:#036773;">Itinerary</strong>
+					<?php foreach ( $leg['stops'] as $stop ) :
+						$mapLink = trim( (string) ( $stop['map_link'] ?? '' ) );
+					?>
+						<div style="margin-top:4px;">
+							<span style="color:#5b7479;"><?php echo esc_html( $stop['time'] ); ?></span>
+							&nbsp;<?php echo esc_html( $stop['label'] ); ?>
+							<?php if ( $mapLink !== '' ) : ?>
+								&middot; <a href="<?php echo esc_url( $mapLink ); ?>" style="color:#036773;">Open Map</a>
+							<?php endif; ?>
+						</div>
+					<?php endforeach; ?>
+				</td></tr>
+			<?php endif; ?>
 		</table>
 	<?php endforeach; ?>
 

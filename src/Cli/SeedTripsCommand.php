@@ -21,9 +21,9 @@ final class SeedTripsCommand {
 			'title'     => 'SHUTTLE-A · Porto → Hotel (14:30)',
 			'departure' => '2026-09-24 14:30:00',
 			'stops'     => [
-				[ 'label' => 'Porto Airport (Vodafone store)',    'time' => '14:30' ],
-				[ 'label' => 'Terminal Alsa/Autna — Casa da Música', 'time' => '15:00' ],
-				[ 'label' => 'Grande Hotel Thermas',               'time' => '17:30' ],
+				[ 'label' => 'Porto Airport (Vodafone store)',    'time' => '14:30', 'map_link' => 'https://maps.google.com/?q=Porto+Airport' ],
+				[ 'label' => 'Terminal Alsa/Autna — Casa da Música', 'time' => '15:00', 'map_link' => 'https://maps.google.com/?q=Casa+da+Musica+Porto' ],
+				[ 'label' => 'Grande Hotel Thermas',               'time' => '17:30', 'map_link' => 'https://maps.google.com/?q=Grande+Hotel+Thermas' ],
 			],
 		],
 		[
@@ -32,9 +32,9 @@ final class SeedTripsCommand {
 			'title'     => 'SHUTTLE-B · Porto → Hotel (15:30)',
 			'departure' => '2026-09-24 15:30:00',
 			'stops'     => [
-				[ 'label' => 'Porto Airport (Vodafone store)',    'time' => '15:30' ],
-				[ 'label' => 'Terminal Alsa/Autna — Casa da Música', 'time' => '16:00' ],
-				[ 'label' => 'Grande Hotel Thermas',               'time' => '18:30' ],
+				[ 'label' => 'Porto Airport (Vodafone store)',    'time' => '15:30', 'map_link' => 'https://maps.google.com/?q=Porto+Airport' ],
+				[ 'label' => 'Terminal Alsa/Autna — Casa da Música', 'time' => '16:00', 'map_link' => 'https://maps.google.com/?q=Casa+da+Musica+Porto' ],
+				[ 'label' => 'Grande Hotel Thermas',               'time' => '18:30', 'map_link' => 'https://maps.google.com/?q=Grande+Hotel+Thermas' ],
 			],
 		],
 		[
@@ -43,8 +43,8 @@ final class SeedTripsCommand {
 			'title'     => 'SHUTTLE-C · Hotel → Porto (09:00)',
 			'departure' => '2026-09-28 09:00:00',
 			'stops'     => [
-				[ 'label' => 'Grande Hotel Thermas', 'time' => '09:00' ],
-				[ 'label' => 'Porto Airport',         'time' => '11:30' ],
+				[ 'label' => 'Grande Hotel Thermas', 'time' => '09:00', 'map_link' => 'https://maps.google.com/?q=Grande+Hotel+Thermas' ],
+				[ 'label' => 'Porto Airport',         'time' => '11:30', 'map_link' => 'https://maps.google.com/?q=Porto+Airport' ],
 			],
 		],
 		[
@@ -53,9 +53,9 @@ final class SeedTripsCommand {
 			'title'     => 'SHUTTLE-D · Hotel → Porto (12:00)',
 			'departure' => '2026-09-28 12:00:00',
 			'stops'     => [
-				[ 'label' => 'Grande Hotel Thermas',                'time' => '12:00' ],
-				[ 'label' => 'Terminal Alsa/Autna — Casa da Música', 'time' => '14:30' ],
-				[ 'label' => 'Porto Airport',                        'time' => '15:00' ],
+				[ 'label' => 'Grande Hotel Thermas',                'time' => '12:00', 'map_link' => 'https://maps.google.com/?q=Grande+Hotel+Thermas' ],
+				[ 'label' => 'Terminal Alsa/Autna — Casa da Música', 'time' => '14:30', 'map_link' => 'https://maps.google.com/?q=Casa+da+Musica+Porto' ],
+				[ 'label' => 'Porto Airport',                        'time' => '15:00', 'map_link' => 'https://maps.google.com/?q=Porto+Airport' ],
 			],
 		],
 	];

@@ -181,6 +181,17 @@ final class PublicAssets {
 															<span class="nvf-bb__trip-time" x-text="t.departure"></span>
 														</div>
 														<div class="nvf-bb__trip-avail" :id="'nvf-avail-' + t.id" x-text="fmtAvailability(t)"></div>
+														<div class="nvf-bb__trip-stops" x-show="t.stops && t.stops.length">
+															<template x-for="(s, i) in t.stops" :key="i">
+																<div class="nvf-bb__trip-stop">
+																	<span class="nvf-bb__trip-stop-time" x-text="s.time"></span>
+																	<span x-text="s.label"></span>
+																	<template x-if="s.map_link">
+																		<a class="nvf-bb__trip-stop-map" :href="s.map_link" target="_blank" rel="noopener" @click.stop><?php esc_html_e( 'Open Map', 'nvf-bus-booking' ); ?></a>
+																	</template>
+																</div>
+															</template>
+														</div>
 													</div>
 												</label>
 											</template>
@@ -217,6 +228,17 @@ final class PublicAssets {
 															<span class="nvf-bb__trip-time" x-text="t.departure"></span>
 														</div>
 														<div class="nvf-bb__trip-avail" :id="'nvf-avail-' + t.id" x-text="fmtAvailability(t)"></div>
+														<div class="nvf-bb__trip-stops" x-show="t.stops && t.stops.length">
+															<template x-for="(s, i) in t.stops" :key="i">
+																<div class="nvf-bb__trip-stop">
+																	<span class="nvf-bb__trip-stop-time" x-text="s.time"></span>
+																	<span x-text="s.label"></span>
+																	<template x-if="s.map_link">
+																		<a class="nvf-bb__trip-stop-map" :href="s.map_link" target="_blank" rel="noopener" @click.stop><?php esc_html_e( 'Open Map', 'nvf-bus-booking' ); ?></a>
+																	</template>
+																</div>
+															</template>
+														</div>
 													</div>
 												</label>
 											</template>
