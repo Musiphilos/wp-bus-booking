@@ -31,7 +31,17 @@ final class Activator {
 		wp_clear_scheduled_hook( self::CRON_HOOK );
 	}
 
-	private static function ensureSecret(): void {
+	/**
+	 * Provision the HMAC signing secret if it is absent.
+	 *
+	 * Called both on activation and on every boot (see Plugin::boot). The boot
+	 * call makes the plugin self-heal when its files are copied to a new site
+	 * without a clean activation — e.g. a dev→prod migration — which would
+	 * otherwise leave `nvf_plugin_secret` empty and make TokenSigner::sign()
+	 * throw an uncaught exception on the magic-link path. Idempotent: a single
+	 * cached get_option when the secret already exists.
+	 */
+	public static function ensureSecret(): void {
 		if ( get_option( 'nvf_plugin_secret' ) ) {
 			return;
 		}

@@ -20,6 +20,7 @@ use NVF\BusBooking\Domain\EmailUniqueness;
 use NVF\BusBooking\Domain\MetaBoxes;
 use NVF\BusBooking\Domain\PostTypes;
 use NVF\BusBooking\Mcp\Abilities;
+use NVF\BusBooking\Rest\NoCache;
 use NVF\BusBooking\Rest\PublicAssets;
 use NVF\BusBooking\Support\Activator;
 use NVF\BusBooking\Support\Logger;
@@ -42,6 +43,12 @@ final class Plugin {
 
 		load_plugin_textdomain( 'nvf-bus-booking', false, dirname( plugin_basename( NVF_BB_FILE ) ) . '/languages' );
 
+		// Self-heal the signing secret. On a clean install the activation hook
+		// already set it; this covers installs whose files were copied to a new
+		// site (dev→prod migration) without a fresh activation, which would
+		// otherwise leave the magic-link path throwing on a missing secret.
+		Activator::ensureSecret();
+
 		// Domain.
 		PostTypes::register();
 		MetaBoxes::register();
@@ -58,6 +65,7 @@ final class Plugin {
 		PublicAssets::register();
 
 		// REST.
+		NoCache::register();
 		MagicLinkController::register();
 		BookingController::register();
 		ClaimController::register();
