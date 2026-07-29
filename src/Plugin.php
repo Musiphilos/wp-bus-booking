@@ -9,6 +9,7 @@ use NVF\BusBooking\Admin\BookingColumns;
 use NVF\BusBooking\Admin\ManifestPage;
 use NVF\BusBooking\Admin\ManualAddPage;
 use NVF\BusBooking\Admin\SettingsPage;
+use NVF\BusBooking\Admin\TripCodeGuard;
 use NVF\BusBooking\Admin\TripColumns;
 use NVF\BusBooking\Auth\MagicLinkController;
 use NVF\BusBooking\Booking\BookingController;
@@ -74,6 +75,7 @@ final class Plugin {
 		AdminMenu::register();
 		SettingsPage::register();
 		TripColumns::register();
+		TripCodeGuard::register();
 		BookingColumns::register();
 		ManifestPage::register();
 		ManualAddPage::register();
