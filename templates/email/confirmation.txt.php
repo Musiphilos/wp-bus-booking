@@ -28,7 +28,10 @@ LB SWING SHUTTLE — BOOKING CONFIRMATION
 <?php foreach ( (array) $legs as $leg ) : ?>
 - <?php echo strtoupper( $leg['direction_label'] ); ?>: <?php echo $leg['trip_code']; ?> · <?php echo $leg['departure_human']; ?> · <?php echo strtoupper( $leg['status_label'] ); ?><?php if ( $leg['pickup_label'] ) : ?>
 
-  Pickup: <?php echo $leg['pickup_label']; ?><?php endif; ?>
+  Pickup: <?php echo $leg['pickup_label']; ?><?php endif; ?><?php if ( ! empty( $leg['stops'] ) ) : ?>
+
+  Itinerary:<?php foreach ( $leg['stops'] as $stop ) : $mapLink = trim( (string) ( $stop['map_link'] ?? '' ) ); ?>
+    <?php echo $stop['time']; ?>  <?php echo $stop['label']; ?><?php echo $mapLink !== '' ? '  (' . $mapLink . ')' : ''; ?><?php endforeach; ?><?php endif; ?>
 
 <?php endforeach; ?>
 

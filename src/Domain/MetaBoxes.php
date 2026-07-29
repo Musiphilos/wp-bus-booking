@@ -98,9 +98,11 @@ final class MetaBoxes {
 					'type'  => 'group',
 					'clone' => true,
 					'sort_clone' => true,
+					'desc'   => __( 'Add each stop in order. The first stop is the pickup point, the last is the arrival. The optional map link shows an "Open Map" link next to that stop everywhere the itinerary appears.', 'nvf-bus-booking' ),
 					'fields' => [
-						[ 'id' => 'label', 'name' => __( 'Stop', 'nvf-bus-booking' ), 'type' => 'text' ],
-						[ 'id' => 'time',  'name' => __( 'Time',  'nvf-bus-booking' ), 'type' => 'time' ],
+						[ 'id' => 'label',    'name' => __( 'Stop', 'nvf-bus-booking' ), 'type' => 'text' ],
+						[ 'id' => 'time',     'name' => __( 'Time', 'nvf-bus-booking' ), 'type' => 'time' ],
+						[ 'id' => 'map_link', 'name' => __( 'Map link', 'nvf-bus-booking' ), 'type' => 'url', 'placeholder' => 'https://maps.google.com/...' ],
 					],
 				],
 				[

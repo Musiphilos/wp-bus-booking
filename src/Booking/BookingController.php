@@ -192,8 +192,9 @@ final class BookingController {
 				continue;
 			}
 			$out[] = [
-				'label' => (string) ( $row['label'] ?? '' ),
-				'time'  => (string) ( $row['time']  ?? '' ),
+				'label'    => (string) ( $row['label'] ?? '' ),
+				'time'     => (string) ( $row['time']  ?? '' ),
+				'map_link' => esc_url_raw( (string) ( $row['map_link'] ?? '' ) ),
 			];
 		}
 		return $out;

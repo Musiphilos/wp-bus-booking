@@ -409,6 +409,28 @@
 	color: var(--nvf-muted);
 	margin-top: 2px;
 }
+.nvf-bb__trip-stops {
+	margin-top: 6px;
+	font-size: 0.8em;
+	color: var(--nvf-muted);
+}
+.nvf-bb__trip-stop {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 6px;
+	margin-top: 2px;
+}
+.nvf-bb__trip-stop-time {
+	font-variant-numeric: tabular-nums;
+	color: var(--nvf-primary);
+	min-width: 3.2em;
+}
+.nvf-bb__trip-stop-map {
+	color: var(--nvf-primary);
+	text-decoration: underline;
+	white-space: nowrap;
+}
 
 .nvf-bb__pickup {
 	margin-top: 0.85rem;

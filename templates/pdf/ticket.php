@@ -96,10 +96,15 @@ defined( 'ABSPATH' ) || exit;
 				<tr>
 					<td style="padding: 14px 22px;" colspan="2">
 						<div style="font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #5b7479; margin-bottom: 6px;">Itinerary</div>
-						<?php foreach ( $leg['stops'] as $stop ) : ?>
+						<?php foreach ( $leg['stops'] as $stop ) :
+							$mapLink = trim( (string) ( $stop['map_link'] ?? '' ) );
+						?>
 							<div style="font-size: 13px; margin: 2px 0;">
 								<span style="display: inline-block; width: 60px; font-family: DejaVu Sans Mono, monospace; color: #036773;"><?php echo esc_html( $stop['time'] ); ?></span>
 								<?php echo esc_html( $stop['label'] ); ?>
+								<?php if ( $mapLink !== '' ) : ?>
+									<a href="<?php echo esc_url( $mapLink ); ?>" style="color: #036773; text-decoration: underline; margin-left: 6px;">Open Map</a>
+								<?php endif; ?>
 							</div>
 						<?php endforeach; ?>
 					</td>
