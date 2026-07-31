@@ -50,6 +50,73 @@ final class LedgerReconciler {
 		// is autoloaded, so once healed the steady-state check is a free
 		// alloptions lookup; the scan itself runs exactly once per version.
 		add_action( 'init', [ self::class, 'maybeSync' ] );
+
+		// Per-booking sync. The plugin's own flows (booking, admin-add, cancel,
+		// waitlist promote) keep the ledger in step themselves. But the booking
+		// CPT is editable in the WP post editor, and changing the Trip/Status
+		// fields there — or trashing/restoring/deleting a booking — writes meta
+		// without touching the ledger. These hooks reconcile that one booking so
+		// a manual edit can never silently desync the seat counts.
+		//
+		// save_post at a late priority (100) so Meta Box has already persisted
+		// its fields by the time we read them. update_post_meta (how the service
+		// classes write) does NOT fire save_post, so this never runs mid-operation
+		// and can't fight the atomic claim.
+		add_action( 'save_post', [ self::class, 'onSave' ], 100 );
+		// Trash/restore normally route through wp_update_post and thus fire
+		// save_post already; these are idempotent belt-and-suspenders in case a
+		// caller trashes without it. before_delete_post is essential — no
+		// save_post fires on permanent delete.
+		add_action( 'trashed_post', [ self::class, 'reconcileBooking' ] );
+		add_action( 'untrashed_post', [ self::class, 'reconcileBooking' ] );
+		add_action( 'before_delete_post', [ self::class, 'onDelete' ] );
+	}
+
+	/** save_post handler: reconcile the saved booking (skips autosaves/revisions). */
+	public static function onSave( int $postId ): void {
+		if ( ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE )
+			|| wp_is_post_revision( $postId )
+			|| wp_is_post_autosave( $postId ) ) {
+			return;
+		}
+		self::reconcileBooking( $postId );
+	}
+
+	/** before_delete_post handler: drop all ledger rows for a booking being removed. */
+	public static function onDelete( int $postId ): void {
+		if ( get_post_type( $postId ) === PostTypes::BOOKING ) {
+			SeatLedger::releaseAllForBooking( $postId );
+		}
+	}
+
+	/**
+	 * Reconcile a single booking's ledger rows to its current confirmed legs.
+	 * No-op for non-bookings. Idempotent. Used by the editor/trash/restore hooks
+	 * and callable directly. A non-publish booking (draft/trash) holds no seats,
+	 * so its rows are released.
+	 */
+	public static function reconcileBooking( int $bookingId ): void {
+		if ( get_post_type( $bookingId ) !== PostTypes::BOOKING ) {
+			return;
+		}
+		$plan = self::diff( self::legsForBooking( $bookingId ), self::existingForBooking( $bookingId ) );
+		if ( ! $plan['insert'] && ! $plan['delete'] ) {
+			return;
+		}
+		global $wpdb;
+		$wpdb->suppress_errors( true );
+		foreach ( $plan['insert'] as $row ) {
+			self::insertRow( $row );
+		}
+		foreach ( $plan['delete'] as $row ) {
+			self::deleteRow( $row );
+		}
+		$wpdb->suppress_errors( false );
+		Logger::info( 'ledger.booking_synced', [
+			'booking_id' => $bookingId,
+			'inserted'   => count( $plan['insert'] ),
+			'deleted'    => count( $plan['delete'] ),
+		] );
 	}
 
 	public static function maybeSync(): void {
@@ -157,11 +224,6 @@ final class LedgerReconciler {
 			'no_found_rows'  => true,
 		] );
 
-		$legs = [
-			BookingService::DIRECTION_INBOUND  => [ 'status' => 'inbound_status',  'trip' => 'inbound_trip_id',  'expect' => 'OPO-IN' ],
-			BookingService::DIRECTION_OUTBOUND => [ 'status' => 'outbound_status', 'trip' => 'outbound_trip_id', 'expect' => 'OPO-OUT' ],
-		];
-
 		// Prime the meta cache in one query rather than N lazy loads.
 		if ( $bookingIds ) {
 			update_meta_cache( 'post', $bookingIds );
@@ -169,20 +231,63 @@ final class LedgerReconciler {
 
 		$required = [];
 		foreach ( $bookingIds as $bookingId ) {
-			$bookingId = (int) $bookingId;
-			foreach ( $legs as $direction => $keys ) {
-				$status    = (string) get_post_meta( $bookingId, $keys['status'], true );
-				$tripId    = (int) get_post_meta( $bookingId, $keys['trip'], true );
-				$tripIsLive = $tripId > 0 && get_post_type( $tripId ) === PostTypes::TRIP;
-				$tripDir   = $tripIsLive ? (string) get_post_meta( $tripId, 'direction', true ) : '';
-
-				$row = self::legToRow( $status, $tripId, $tripIsLive, $tripDir, $keys['expect'], $direction, $bookingId );
-				if ( $row !== null ) {
-					$required[] = $row;
-				}
+			foreach ( self::legsForBooking( (int) $bookingId ) as $row ) {
+				$required[] = $row;
 			}
 		}
 		return $required;
+	}
+
+	/**
+	 * The confirmed ledger rows a single booking should have. Empty when the
+	 * booking is not published (draft/trash hold no seats). Shared by the full
+	 * scan and the per-booking sync.
+	 *
+	 * @return array<int,array{trip_id:int,booking_id:int,direction:string}>
+	 */
+	private static function legsForBooking( int $bookingId ): array {
+		if ( get_post_status( $bookingId ) !== 'publish' ) {
+			return [];
+		}
+		$legs = [
+			BookingService::DIRECTION_INBOUND  => [ 'status' => 'inbound_status',  'trip' => 'inbound_trip_id',  'expect' => 'OPO-IN' ],
+			BookingService::DIRECTION_OUTBOUND => [ 'status' => 'outbound_status', 'trip' => 'outbound_trip_id', 'expect' => 'OPO-OUT' ],
+		];
+
+		$rows = [];
+		foreach ( $legs as $direction => $keys ) {
+			$status     = (string) get_post_meta( $bookingId, $keys['status'], true );
+			$tripId     = (int) get_post_meta( $bookingId, $keys['trip'], true );
+			$tripIsLive = $tripId > 0 && get_post_type( $tripId ) === PostTypes::TRIP;
+			$tripDir    = $tripIsLive ? (string) get_post_meta( $tripId, 'direction', true ) : '';
+
+			$row = self::legToRow( $status, $tripId, $tripIsLive, $tripDir, $keys['expect'], $direction, $bookingId );
+			if ( $row !== null ) {
+				$rows[] = $row;
+			}
+		}
+		return $rows;
+	}
+
+	/** @return array<int,array{trip_id:int,booking_id:int,direction:string}> */
+	private static function existingForBooking( int $bookingId ): array {
+		global $wpdb;
+		$table = SeatLedger::tableName();
+		$rows  = $wpdb->get_results(
+			$wpdb->prepare( "SELECT trip_id, booking_id, direction FROM {$table} WHERE booking_id = %d", $bookingId ),
+			ARRAY_A
+		);
+		if ( ! is_array( $rows ) ) {
+			return [];
+		}
+		return array_map(
+			static fn( array $r ): array => [
+				'trip_id'    => (int) $r['trip_id'],
+				'booking_id' => (int) $r['booking_id'],
+				'direction'  => (string) $r['direction'],
+			],
+			$rows
+		);
 	}
 
 	/**
