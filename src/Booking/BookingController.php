@@ -6,6 +6,7 @@ namespace NVF\BusBooking\Booking;
 
 use NVF\BusBooking\Auth\SessionCookie;
 use NVF\BusBooking\Domain\PostTypes;
+use NVF\BusBooking\Domain\TripStops;
 use NVF\BusBooking\Support\Logger;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -98,6 +99,9 @@ final class BookingController {
 				'confirmed'  => $confirmed,
 				'available'  => max( 0, $capacity - $confirmed ),
 				'status'     => $status ?: 'open',
+				// Pickup options derived from this trip's stops (all but the last,
+				// the arrival). Empty for outbound trips or trips with ≤1 stop.
+				'pickups'    => TripStops::pickups( $post->ID ),
 			];
 		}
 		wp_reset_postdata();
@@ -129,7 +133,7 @@ final class BookingController {
 		if ( $inboundTrip <= 0 && $outboundTrip <= 0 ) {
 			return new WP_REST_Response( [ 'ok' => false, 'error' => 'no_trip_selected' ], 400 );
 		}
-		if ( $inboundTrip > 0 && $inboundPickup === '' ) {
+		if ( $inboundTrip > 0 && $inboundPickup === '' && TripStops::pickups( $inboundTrip ) ) {
 			return new WP_REST_Response( [ 'ok' => false, 'error' => 'pickup_required' ], 400 );
 		}
 

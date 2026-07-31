@@ -90,18 +90,36 @@
     });
 }());
 
-/* ── ManualAddPage: show/hide pickup on trip change ─────── */
+/* ── ManualAddPage: pickup options follow the selected trip's stops ─────── */
 (function () {
     var tripSelect   = document.getElementById('nvf_inbound');
     var pickupWrap   = document.getElementById('nvf-pickup-wrap');
-    if (!tripSelect || !pickupWrap) return;
+    var pickupSelect = document.getElementById('nvf_inbound_pickup');
+    if (!tripSelect || !pickupWrap || !pickupSelect) return;
 
-    function toggle() {
-        pickupWrap.style.display = tripSelect.value && tripSelect.value !== '0' ? '' : 'none';
+    function currentPickups() {
+        var opt = tripSelect.options[tripSelect.selectedIndex];
+        if (!opt) return [];
+        try { return JSON.parse(opt.getAttribute('data-pickups') || '[]') || []; }
+        catch (e) { return []; }
     }
 
-    tripSelect.addEventListener('change', toggle);
-    toggle();
+    function refresh() {
+        var picks = (tripSelect.value && tripSelect.value !== '0') ? currentPickups() : [];
+        var prev  = pickupSelect.value;
+        pickupSelect.length = 1; // keep only the placeholder option
+        picks.forEach(function (label) {
+            var o = document.createElement('option');
+            o.value = label;
+            o.textContent = label;
+            pickupSelect.appendChild(o);
+        });
+        pickupSelect.value = picks.indexOf(prev) !== -1 ? prev : '';
+        pickupWrap.style.display = picks.length ? '' : 'none';
+    }
+
+    tripSelect.addEventListener('change', refresh);
+    refresh();
 }());
 
 /* ── ManualAddPage: override capacity warning ───────────── */

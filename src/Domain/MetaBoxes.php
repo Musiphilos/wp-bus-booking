@@ -34,7 +34,12 @@ final class MetaBoxes {
 		'cancelled' => 'Cancelled',
 	];
 
-	public const PICKUP_LOCATIONS = [
+	/**
+	 * Legacy pickup keys → labels. Pickups now come from each trip's Stops and are
+	 * stored as the stop label text; this map only resolves bookings made before
+	 * that change (which stored these two keys) for display in emails/PDF/summary.
+	 */
+	public const LEGACY_PICKUP_LABELS = [
 		'airport'        => 'Porto Airport (Vodafone store)',
 		'casa_da_musica' => 'Terminal Alsa/Autna — Casa da Música',
 	];
@@ -180,12 +185,11 @@ final class MetaBoxes {
 					'std'     => 'none',
 				],
 				[
-					'id'         => 'inbound_pickup_location',
-					'name'       => __( 'Inbound pickup location', 'nvf-bus-booking' ),
-					'type'       => 'select',
-					'options'    => self::PICKUP_LOCATIONS,
-					'placeholder'=> __( '— Select —', 'nvf-bus-booking' ),
-					'visible'    => [ 'inbound_trip_id', '!=', '' ],
+					'id'      => 'inbound_pickup_location',
+					'name'    => __( 'Inbound pickup location', 'nvf-bus-booking' ),
+					'type'    => 'text',
+					'desc'    => __( 'The pickup stop label, as chosen from the inbound trip\'s Stops.', 'nvf-bus-booking' ),
+					'visible' => [ 'inbound_trip_id', '!=', '' ],
 				],
 				[
 					'id'   => 'inbound_waitlist_position',

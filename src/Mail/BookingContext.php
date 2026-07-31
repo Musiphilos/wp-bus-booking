@@ -93,11 +93,13 @@ final class BookingContext {
 		][ $s ] ?? ucfirst( $s );
 	}
 
-	private static function pickupLabel( string $code ): string {
-		return [
-			'airport'        => 'Porto Airport (Vodafone store)',
-			'casa_da_musica' => 'Terminal Alsa/Autna — Casa da Música',
-		][ $code ] ?? $code;
+	/**
+	 * Pickups are stored as the chosen stop's label, so the stored value is
+	 * already display-ready. Bookings made before that change stored one of two
+	 * keys; resolve those via the legacy map.
+	 */
+	private static function pickupLabel( string $stored ): string {
+		return \NVF\BusBooking\Domain\MetaBoxes::LEGACY_PICKUP_LABELS[ $stored ] ?? $stored;
 	}
 
 	private static function stops( array $raw ): array {

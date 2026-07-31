@@ -6,8 +6,8 @@ namespace NVF\BusBooking\Booking;
 
 use NVF\BusBooking\Auth\ElementorLookup;
 use NVF\BusBooking\Domain\EmailUniqueness;
-use NVF\BusBooking\Domain\MetaBoxes;
 use NVF\BusBooking\Domain\PostTypes;
+use NVF\BusBooking\Domain\TripStops;
 use NVF\BusBooking\Integrations\GoogleSheetsWebhook;
 use NVF\BusBooking\Mail\BookingContext;
 use NVF\BusBooking\Mail\Mailer;
@@ -84,9 +84,11 @@ final class BookingService {
 		self::assertTripIs( $inboundTrip,  'OPO-IN' );
 		self::assertTripIs( $outboundTrip, 'OPO-OUT' );
 
-		// Fix #3: whitelist inbound pickup before persisting it.
-		$inboundPickup = isset( $inbound['pickup'] ) ? self::normalizePickup( (string) $inbound['pickup'] ) : null;
-		if ( $inboundTrip > 0 && $inboundPickup === null ) {
+		// Validate the inbound pickup against the trip's own stops before saving.
+		// A pickup is required only when the inbound trip actually has pickup
+		// points (a trip with a single stop has none).
+		$inboundPickup = isset( $inbound['pickup'] ) ? self::normalizePickup( (string) $inbound['pickup'], $inboundTrip ) : null;
+		if ( $inboundTrip > 0 && $inboundPickup === null && TripStops::pickups( $inboundTrip ) ) {
 			throw new \InvalidArgumentException( 'A valid inbound pickup location is required.' );
 		}
 
@@ -178,8 +180,10 @@ final class BookingService {
 			if ( $phone !== '' ) update_post_meta( $bookingId, 'participant_phone', $phone );
 		}
 
-		// Same pickup validation rules apply on the admin path.
-		$inboundPickup = isset( $inbound['pickup'] ) ? self::normalizePickup( (string) $inbound['pickup'] ) : null;
+		// Admin path: a provided pickup is still whitelist-validated against the
+		// trip's stops, but (unlike the public path) pickup is NOT required — the
+		// team may add a booking with the pickup left TBD.
+		$inboundPickup = isset( $inbound['pickup'] ) ? self::normalizePickup( (string) $inbound['pickup'], $inboundTrip ) : null;
 
 		$inboundResult = [ 'status' => 'none', 'waitlist_position' => null ];
 		if ( $inboundTrip > 0 ) {
@@ -262,14 +266,15 @@ final class BookingService {
 		if ( ! CancellationPolicy::isOpen() ) {
 			throw new \RuntimeException( 'Edits are closed for this event.' );
 		}
-		// Fix #3: whitelist before persisting.
-		$normalized = self::normalizePickup( $pickup );
-		if ( $normalized === null ) {
-			throw new \InvalidArgumentException( 'Invalid pickup location.' );
-		}
 		$id = self::findBookingId( $email );
 		if ( ! $id ) {
 			throw new \RuntimeException( 'No booking found for this email.' );
+		}
+		// Validate against the booking's own inbound trip's stops.
+		$tripId     = (int) get_post_meta( $id, 'inbound_trip_id', true );
+		$normalized = self::normalizePickup( $pickup, $tripId );
+		if ( $normalized === null ) {
+			throw new \InvalidArgumentException( 'Invalid pickup location.' );
 		}
 		update_post_meta( $id, 'inbound_pickup_location', $normalized );
 		self::appendHistory( $id, $email, 'edit_pickup', $normalized );
@@ -392,10 +397,17 @@ final class BookingService {
 		}
 	}
 
-	/** Returns the canonical pickup key, or null if the value is unknown. */
-	private static function normalizePickup( string $raw ): ?string {
-		$candidate = sanitize_key( $raw );
-		return array_key_exists( $candidate, MetaBoxes::PICKUP_LOCATIONS ) ? $candidate : null;
+	/**
+	 * Validate a submitted pickup against the selected inbound trip's pickup
+	 * stops. Returns the canonical stop label, or null if it isn't one of them.
+	 * Pickups are the trip's Stops minus the arrival (see TripStops).
+	 */
+	private static function normalizePickup( string $raw, int $tripId ): ?string {
+		$raw = trim( $raw );
+		if ( $raw === '' || $tripId <= 0 ) {
+			return null;
+		}
+		return in_array( $raw, TripStops::pickupLabels( $tripId ), true ) ? $raw : null;
 	}
 
 	private static function cancelDirection( int $bookingId, string $direction ): void {
