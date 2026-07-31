@@ -91,11 +91,32 @@ final class SeatLedger {
 		$wpdb->suppress_errors( false );
 
 		if ( false === $affected ) {
-			// Likely PK violation: same booking already holds this seat.
-			Logger::info( 'seat.claim_duplicate', [ 'trip_id' => $tripId, 'booking_id' => $bookingId, 'db_error' => $wpdb->last_error ] );
-			return 'confirmed';
+			// The query errored. The benign case is a PRIMARY KEY collision —
+			// this booking already holds a row for this trip (e.g. a double
+			// submit) — in which case the seat is genuinely ours. Any other DB
+			// error means no row landed, so we must NOT report confirmed: doing
+			// so would stamp the booking confirmed with no ledger row behind it
+			// (the exact drift that desyncs availability). Verify the row before
+			// deciding.
+			if ( self::has( $tripId, $bookingId ) ) {
+				Logger::info( 'seat.claim_duplicate', [ 'trip_id' => $tripId, 'booking_id' => $bookingId, 'db_error' => $wpdb->last_error ] );
+				return 'confirmed';
+			}
+			Logger::error( 'seat.claim_failed', [ 'trip_id' => $tripId, 'booking_id' => $bookingId, 'db_error' => $wpdb->last_error ] );
+			return 'waitlist';
 		}
 		return $affected > 0 ? 'confirmed' : 'waitlist';
+	}
+
+	/** True when a ledger row already exists for this booking on this trip. */
+	public static function has( int $tripId, int $bookingId ): bool {
+		global $wpdb;
+		$table = self::tableName();
+		return (bool) $wpdb->get_var( $wpdb->prepare(
+			"SELECT 1 FROM {$table} WHERE trip_id = %d AND booking_id = %d",
+			$tripId,
+			$bookingId
+		) );
 	}
 
 	public static function release( int $tripId, int $bookingId ): bool {

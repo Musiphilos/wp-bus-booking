@@ -14,7 +14,9 @@ use NVF\BusBooking\Admin\TripColumns;
 use NVF\BusBooking\Auth\MagicLinkController;
 use NVF\BusBooking\Booking\BookingController;
 use NVF\BusBooking\Booking\ClaimController;
+use NVF\BusBooking\Booking\LedgerReconciler;
 use NVF\BusBooking\Cli\PurgeCommand;
+use NVF\BusBooking\Cli\ReconcileLedgerCommand;
 use NVF\BusBooking\Cli\SeedTripsCommand;
 use NVF\BusBooking\Cron\RetentionPurge;
 use NVF\BusBooking\Domain\EmailUniqueness;
@@ -80,12 +82,27 @@ final class Plugin {
 		ManifestPage::register();
 		ManualAddPage::register();
 
+		// Keep the seat ledger in step with confirmed booking meta. Runs once per
+		// schema version on init (self-healing after a dev→prod copy that left the
+		// ledger unpopulated); a single autoloaded-option lookup thereafter.
+		// Guarded because prod deploys rsync without vendor/: between `make deploy`
+		// and `make prod-composer` this brand-new class may not yet be in the
+		// autoload classmap, and we must never fatal a live site over it.
+		if ( class_exists( LedgerReconciler::class ) ) {
+			LedgerReconciler::register();
+		}
+
 		// Cron.
 		RetentionPurge::register();
 
 		// CLI.
 		SeedTripsCommand::register();
 		PurgeCommand::register();
+		// Guarded for the same reason as LedgerReconciler above (new class, prod
+		// autoload classmap may lag the file deploy).
+		if ( class_exists( ReconcileLedgerCommand::class ) ) {
+			ReconcileLedgerCommand::register();
+		}
 
 		// Boot is high-frequency noise (polls, REST, admin-ajax) — keep at debug level.
 		Logger::debug( 'plugin.boot', [ 'version' => NVF_BB_VERSION ] );
