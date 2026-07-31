@@ -236,13 +236,25 @@ final class BookingService {
 	private static function forceClaim( int $bookingId, int $tripId, string $direction ): array {
 		global $wpdb;
 		$table = $wpdb->prefix . SeatLedger::TABLE_SUFFIX;
+		$wpdb->suppress_errors( true );
 		$wpdb->insert( $table, [
 			'trip_id'    => $tripId,
 			'booking_id' => $bookingId,
 			'direction'  => $direction,
 			'created_at' => Time::nowMysql(),
 		], [ '%d', '%d', '%s', '%s' ] );
-		Logger::warning( 'seat.force_claim', [ 'trip_id' => $tripId, 'booking_id' => $bookingId ] );
+		$wpdb->suppress_errors( false );
+
+		// The booking is confirmed regardless (that is the override intent), but a
+		// row MUST exist behind it or availability desyncs. A failed insert is
+		// benign only when a row is already there (re-add of the same seat); any
+		// other failure is logged at error so it is visible — the reconciler will
+		// heal it, but it should never happen silently.
+		if ( ! SeatLedger::has( $tripId, $bookingId ) ) {
+			Logger::error( 'seat.force_claim_no_row', [ 'trip_id' => $tripId, 'booking_id' => $bookingId, 'db_error' => $wpdb->last_error ] );
+		} else {
+			Logger::warning( 'seat.force_claim', [ 'trip_id' => $tripId, 'booking_id' => $bookingId ] );
+		}
 		return [ 'status' => 'confirmed', 'waitlist_position' => null ];
 	}
 
