@@ -6,6 +6,7 @@ namespace NVF\BusBooking\Admin;
 
 use NVF\BusBooking\Booking\BookingService;
 use NVF\BusBooking\Domain\PostTypes;
+use NVF\BusBooking\Domain\TripStops;
 
 /**
  * Admin → Bus Booking → Add Booking. Lets the team enter a booking on someone's
@@ -75,15 +76,16 @@ final class ManualAddPage {
 							<select id="nvf_inbound" name="inbound_trip">
 								<option value="0"><?php esc_html_e( '— None —', 'nvf-bus-booking' ); ?></option>
 								<?php foreach ( $inboundTrips as $t ) : ?>
-									<option value="<?php echo (int) $t['id']; ?>"><?php echo esc_html( $t['code'] . ' · ' . $t['departure'] ); ?></option>
+									<option value="<?php echo (int) $t['id']; ?>"
+									        data-pickups="<?php echo esc_attr( (string) wp_json_encode( $t['pickups'] ) ); ?>">
+										<?php echo esc_html( $t['code'] . ' · ' . $t['departure'] ); ?>
+									</option>
 								<?php endforeach; ?>
 							</select>
 							<span id="nvf-pickup-wrap" style="margin-left:10px;display:none;">
+								<?php // Options are populated from the selected trip's Stops by admin.js. ?>
 								<select name="inbound_pickup" id="nvf_inbound_pickup">
 									<option value=""><?php esc_html_e( '— Pickup —', 'nvf-bus-booking' ); ?></option>
-									<?php foreach ( \NVF\BusBooking\Domain\MetaBoxes::PICKUP_LOCATIONS as $pickupKey => $pickupLabel ) : ?>
-										<option value="<?php echo esc_attr( $pickupKey ); ?>"><?php echo esc_html( $pickupLabel ); ?></option>
-									<?php endforeach; ?>
 								</select>
 							</span>
 						</td>
@@ -130,7 +132,7 @@ final class ManualAddPage {
 		$phone    = isset( $_POST['phone'] )    ? sanitize_text_field( wp_unslash( $_POST['phone'] ) ) : '';
 		$inbound  = isset( $_POST['inbound_trip'] )  ? (int) $_POST['inbound_trip']  : 0;
 		$outbound = isset( $_POST['outbound_trip'] ) ? (int) $_POST['outbound_trip'] : 0;
-		$pickup   = isset( $_POST['inbound_pickup'] ) ? sanitize_key( wp_unslash( $_POST['inbound_pickup'] ) ) : '';
+		$pickup   = isset( $_POST['inbound_pickup'] ) ? sanitize_text_field( wp_unslash( $_POST['inbound_pickup'] ) ) : '';
 		$override = ! empty( $_POST['override_capacity'] );
 
 		try {
@@ -168,6 +170,7 @@ final class ManualAddPage {
 				'id'        => $post->ID,
 				'code'      => (string) get_post_meta( $post->ID, 'trip_code', true ),
 				'departure' => self::lisbonHuman( $dt ),
+				'pickups'   => TripStops::pickupLabels( $post->ID ),
 			];
 		}
 		wp_reset_postdata();

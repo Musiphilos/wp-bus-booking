@@ -4,6 +4,8 @@ declare( strict_types=1 );
 
 namespace NVF\BusBooking\Domain;
 
+use NVF\BusBooking\Booking\SeatLedger;
+
 /**
  * Read-side helpers for counting bookings against a trip. Cheap enough to
  * call from admin columns without caching for now; if the bookings list
@@ -17,7 +19,12 @@ final class TripCounts {
 		$capacity  = (int) ( get_post_meta( $tripId, 'capacity', true ) ?: 0 );
 
 		return [
-			'confirmed' => self::countByStatus( $tripId, $direction, 'confirmed' ),
+			// Confirmed seats come from the seat ledger — the SAME source the
+			// booking page, Dashboard and Manifest use — so the Trips column can
+			// never disagree with them. The ledger is kept honest by
+			// LedgerReconciler; waitlist has no ledger representation and stays
+			// meta-derived.
+			'confirmed' => SeatLedger::countConfirmed( $tripId ),
 			'waitlist'  => self::countByStatus( $tripId, $direction, 'waitlist' ),
 			'capacity'  => $capacity,
 			'direction' => $direction,

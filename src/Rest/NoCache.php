@@ -33,6 +33,38 @@ final class NoCache {
 
 	public static function register(): void {
 		add_filter( 'rest_post_dispatch', [ self::class, 'stamp' ], 10, 3 );
+		add_filter( 'do_shortcode_tag', [ self::class, 'guardBookingPage' ], 10, 2 );
+	}
+
+	/**
+	 * Keep the booking page out of the page cache.
+	 *
+	 * The page renders per-session (the signed-in view) and embeds a single-use
+	 * `wp_rest` nonce. A cached copy ships a stale nonce, so the booking POST is
+	 * later rejected by WordPress with "Cookie check failed"; it would also show
+	 * one participant's signed-in state to the next visitor.
+	 *
+	 * We hook `do_shortcode_tag` rather than sniff `post_content` because this
+	 * is an Elementor site: the shortcode lives inside a widget, so it never
+	 * appears in `post_content` — but it is still rendered through do_shortcode(),
+	 * which fires this filter. DONOTCACHEPAGE is honoured by every major page
+	 * cache; the LiteSpeed control covers this host (Hostinger/LSCache), whose
+	 * default page TTL would otherwise cache the booking page for days. Both are
+	 * no-ops where they don't apply. Returns $output untouched.
+	 *
+	 * @param string $output Shortcode output (passed through unchanged).
+	 * @param string $tag    The shortcode tag being rendered.
+	 * @return string
+	 */
+	public static function guardBookingPage( $output, $tag ) {
+		if ( $tag !== PublicAssets::SHORTCODE ) {
+			return $output;
+		}
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		do_action( 'litespeed_control_set_nocache', 'nvf booking page carries a per-session nonce' );
+		return $output;
 	}
 
 	/**

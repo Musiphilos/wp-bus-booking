@@ -3,7 +3,8 @@
 
 	const cfg = window.NVF_BB || {};
 	const i18n = cfg.i18n || {};
-	const pickups = cfg.pickups || {};
+	// Legacy pickup key → label, for bookings made before pickups came from stops.
+	const pickupLegacy = cfg.pickupLegacy || {};
 	const statusMap = cfg.statusLabels || {};
 
 	const t = (key, fallback) => (i18n[key] != null ? i18n[key] : fallback);
@@ -207,20 +208,34 @@
 					if (direction === 'inbound') this.selection.inbound_pickup = '';
 				} else {
 					this.selection[key] = tripId;
+					// Switching inbound trips: a pickup chosen for the previous trip
+					// isn't valid for the new one, so clear it.
+					if (direction === 'inbound') this.selection.inbound_pickup = '';
 				}
+			},
+
+			// Pickup options for the currently-selected inbound trip (from /trips).
+			inboundPickups() {
+				const tr = this.tripById(this.selection.inbound_trip_id);
+				return (tr && Array.isArray(tr.pickups)) ? tr.pickups : [];
+			},
+
+			// A pickup is only required when the selected inbound trip has options.
+			inboundPickupSatisfied() {
+				return this.inboundPickups().length === 0 || !!this.selection.inbound_pickup;
 			},
 
 			canSubmit() {
 				if (this.busy) return false;
 				if (!this.gdpr) return false;
 				if (this.addingDirection === 'inbound') {
-					return !!this.selection.inbound_trip_id && !!this.selection.inbound_pickup;
+					return !!this.selection.inbound_trip_id && this.inboundPickupSatisfied();
 				}
 				if (this.addingDirection === 'outbound') {
 					return !!this.selection.outbound_trip_id;
 				}
 				if (!this.selection.inbound_trip_id && !this.selection.outbound_trip_id) return false;
-				if (this.selection.inbound_trip_id && !this.selection.inbound_pickup) return false;
+				if (this.selection.inbound_trip_id && !this.inboundPickupSatisfied()) return false;
 				return true;
 			},
 
@@ -347,7 +362,8 @@
 				return t('avail_full', 'Full — join the waitlist');
 			},
 
-			pickupLabel(code) { return pickups[code] || code || ''; },
+			// New bookings store the stop label itself; old ones store a legacy key.
+			pickupLabel(v) { return pickupLegacy[v] || v || ''; },
 
 			statusLabel(s) { return statusMap[s] || s; },
 		};

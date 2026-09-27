@@ -9,6 +9,7 @@ Makefile
 vendor/
 dist/
 node_modules/
+.phpunit.cache/
 
 # ── Internal notes (not for public consumption) ────────────────────
 tasks/

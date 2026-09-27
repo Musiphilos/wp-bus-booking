@@ -6,6 +6,7 @@ namespace NVF\BusBooking\Rest;
 
 use NVF\BusBooking\Auth\ElementorLookup;
 use NVF\BusBooking\Auth\SessionCookie;
+use NVF\BusBooking\Domain\MetaBoxes;
 use NVF\BusBooking\Support\Settings;
 use NVF\BusBooking\Support\StringRenderer;
 
@@ -63,11 +64,6 @@ final class PublicAssets {
 			? esc_url_raw( wp_unslash( (string) $_SERVER['REQUEST_URI'] ) )
 			: '/';
 
-		$pickups = [
-			'airport'        => __( 'Porto Airport (Vodafone store)', 'nvf-bus-booking' ),
-			'casa_da_musica' => __( 'Terminal Alsa/Autna — Casa da Música', 'nvf-bus-booking' ),
-		];
-
 		$config = [
 			'restBase'     => esc_url_raw( rest_url( 'nvf/v1' ) ),
 			'restNonce'    => wp_create_nonce( 'wp_rest' ),
@@ -75,7 +71,9 @@ final class PublicAssets {
 			'signedIn'     => (bool) $session,
 			'profile'      => $profile,
 			'flash'        => self::readFlash(),
-			'pickups'      => $pickups,
+			// Pickup options are derived per-trip from Stops (see /trips `pickups`).
+			// This map only resolves the labels of bookings made before that change.
+			'pickupLegacy' => MetaBoxes::LEGACY_PICKUP_LABELS,
 			'statusLabels' => [
 				'confirmed' => __( 'Confirmed', 'nvf-bus-booking' ),
 				'waitlist'  => __( 'On the waiting list', 'nvf-bus-booking' ),
@@ -185,17 +183,15 @@ final class PublicAssets {
 												</label>
 											</template>
 
-											<template x-if="selection.inbound_trip_id">
+											<template x-if="selection.inbound_trip_id && inboundPickups().length">
 												<div class="nvf-bb__pickup">
 													<p class="nvf-bb__label"><?php esc_html_e( 'Where are we picking you up?', 'nvf-bus-booking' ); ?></p>
-													<label class="nvf-bb__radio">
-														<input type="radio" name="pickup" value="airport" x-model="selection.inbound_pickup" />
-														<span x-text="pickupLabel('airport')"></span>
-													</label>
-													<label class="nvf-bb__radio">
-														<input type="radio" name="pickup" value="casa_da_musica" x-model="selection.inbound_pickup" />
-														<span x-text="pickupLabel('casa_da_musica')"></span>
-													</label>
+													<template x-for="p in inboundPickups()" :key="p.label + '|' + p.time">
+														<label class="nvf-bb__radio">
+															<input type="radio" name="pickup" :value="p.label" x-model="selection.inbound_pickup" />
+															<span x-text="p.time ? (p.label + ' · ' + p.time) : p.label"></span>
+														</label>
+													</template>
 												</div>
 											</template>
 										</fieldset>
