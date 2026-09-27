@@ -6,6 +6,7 @@ namespace NVF\BusBooking;
 
 use NVF\BusBooking\Admin\AdminMenu;
 use NVF\BusBooking\Admin\BookingColumns;
+use NVF\BusBooking\Admin\BookingLegFilter;
 use NVF\BusBooking\Admin\ManifestPage;
 use NVF\BusBooking\Admin\ManualAddPage;
 use NVF\BusBooking\Admin\SettingsPage;
@@ -79,6 +80,10 @@ final class Plugin {
 		TripColumns::register();
 		TripCodeGuard::register();
 		BookingColumns::register();
+		// Guarded for the same reason as LedgerReconciler below — see 40d71f4.
+		if ( class_exists( BookingLegFilter::class ) ) {
+			BookingLegFilter::register();
+		}
 		ManifestPage::register();
 		ManualAddPage::register();
 
